@@ -6,6 +6,11 @@ Copyright (c) 2019 - present AppSeed.us
 from flask_login import UserMixin
 
 from sqlalchemy.orm import relationship
+from sqlalchemy.exc import SQLAlchemyError
+class InvalidUsage(Exception):
+    def __init__(self, message, status_code=None):
+        super().__init__(message)
+        self.status_code = status_code
 from flask_dance.consumer.storage.sqla import OAuthConsumerMixin
 
 from apps import db, login_manager
@@ -20,22 +25,21 @@ class Users(db.Model, UserMixin):
     username      = db.Column(db.String(64), unique=True)
     email         = db.Column(db.String(64), unique=True)
     password      = db.Column(db.LargeBinary)
-
     oauth_github  = db.Column(db.String(100), nullable=True)
+    api_key       = db.Column(db.String(128), unique=True, nullable=True)
+    webhook_url   = db.Column(db.String(256), nullable=True)
 
     def __init__(self, **kwargs):
+        import secrets
         for property, value in kwargs.items():
-            # depending on whether value is an iterable or not, we must
-            # unpack it's value (when **kwargs is request.form, some values
-            # will be a 1-element list)
             if hasattr(value, '__iter__') and not isinstance(value, str):
-                # the ,= unpack of a singleton fails PEP8 (travis flake8 test)
                 value = value[0]
-
             if property == 'password':
-                value = hash_pass(value)  # we need bytes here (not plain str)
-
+                value = hash_pass(value)
             setattr(self, property, value)
+        # Generate API key if not provided
+        if not hasattr(self, 'api_key') or not self.api_key:
+            self.api_key = secrets.token_urlsafe(32)
 
     def __repr__(self):
         return str(self.username)

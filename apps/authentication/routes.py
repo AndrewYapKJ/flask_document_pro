@@ -3,6 +3,78 @@
 Copyright (c) 2019 - present AppSeed.us
 """
 
+import requests
+import os
+from flask import render_template, redirect, request, url_for, jsonify
+from flask_login import (
+    current_user,
+    login_user,
+    logout_user
+)
+from flask_dance.contrib.github import github
+
+from apps import db, login_manager
+from apps.authentication import blueprint
+from apps.authentication.forms import LoginForm, CreateAccountForm
+from apps.authentication.models import Users
+from apps.authentication.util import verify_pass
+
+# API Key Authentication Endpoint
+@blueprint.route('/api/auth', methods=['POST'])
+def api_auth():
+    # Accept API key from JSON body, headers, or query string
+    api_key = None
+    if request.is_json:
+        api_key = request.json.get('api_key')
+    if not api_key:
+        api_key = request.headers.get('X-API-KEY')
+    if not api_key:
+        api_key = request.args.get('api_key')
+    print("Received API key:", api_key)
+    if not api_key:
+        return jsonify({'error': 'API key required'}), 401
+    user = Users.query.filter_by(api_key=api_key).first()
+    print("User found:", user)
+    if not user:
+        return jsonify({'error': 'Invalid API key'}), 403
+    return jsonify({'success': True, 'user_id': user.id, 'username': user.username}), 200
+
+# API endpoint for file upload and text extraction
+@blueprint.route('/api/extract', methods=['POST'])
+def api_extract():
+    api_key = request.headers.get('X-API-KEY') or request.args.get('api_key')
+    user = Users.query.filter_by(api_key=api_key).first()
+    if not user:
+        return jsonify({'error': 'Invalid API key'}), 403
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file uploaded'}), 400
+    file = request.files['file']
+    # Save file temporarily
+    temp_path = os.path.join('/tmp', file.filename)
+    file.save(temp_path)
+    # Simple text extraction (for demonstration)
+    try:
+        with open(temp_path, 'r', encoding='utf-8', errors='ignore') as f:
+            text = f.read()
+    except Exception:
+        text = 'Unable to extract text.'
+    os.remove(temp_path)
+    # Trigger webhook if set
+    if user.webhook_url:
+        try:
+            requests.post(user.webhook_url, json={
+                'user_id': user.id,
+                'filename': file.filename,
+                'text': text
+            })
+        except Exception:
+            pass
+    return jsonify({'extracted_text': text}), 200
+# -*- encoding: utf-8 -*-
+"""
+Copyright (c) 2019 - present AppSeed.us
+"""
+
 from flask import render_template, redirect, request, url_for
 from flask_login import (
     current_user,

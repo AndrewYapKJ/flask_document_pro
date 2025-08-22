@@ -33,7 +33,7 @@ end
 # Unset irrelevant variables.
 deactivate nondestructive
 
-set -gx VIRTUAL_ENV /Users/andrewyap/Downloads/flask-datta-able-master/.venv
+set -gx VIRTUAL_ENV /Users/andrewyap/Desktop/GIS/APP/flask_document_pro/.venv
 
 set -gx _OLD_VIRTUAL_PATH $PATH
 set -gx PATH "$VIRTUAL_ENV/"bin $PATH

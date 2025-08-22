@@ -41,12 +41,12 @@ case "$(uname)" in
     CYGWIN*|MSYS*|MINGW*)
         # transform D:\path\to\venv to /d/path/to/venv on MSYS and MINGW
         # and to /cygdrive/d/path/to/venv on Cygwin
-        VIRTUAL_ENV=$(cygpath /Users/andrewyap/Downloads/flask-datta-able-master/.venv)
+        VIRTUAL_ENV=$(cygpath /Users/andrewyap/Desktop/GIS/APP/flask_document_pro/.venv)
         export VIRTUAL_ENV
         ;;
     *)
         # use the path as-is
-        export VIRTUAL_ENV=/Users/andrewyap/Downloads/flask-datta-able-master/.venv
+        export VIRTUAL_ENV=/Users/andrewyap/Desktop/GIS/APP/flask_document_pro/.venv
         ;;
 esac
 

@@ -4,7 +4,9 @@
 
 {% block stylesheets %}
 <link rel="stylesheet" href="/static/assets/css/style.css">
-<link rel="st    body.dark .field-editor input,
+<link rel="stylesheet" href="/static/assets/css/dark.css">
+<style>
+    body.dark .field-editor input,
     body.dark .field-editor select,
     body.dark .field-editor textarea {
         background: #2d3748;
@@ -40,13 +42,45 @@
         color: #d1d5db !important;
     }
     
+    body.dark .add-subfield-btn {
+        background: #374151 !important;
+        border-color: #4a5568 !important;
+        color: #d1d5db !important;
+    }
+    
+    body.dark .add-subfield-btn:hover {
+        background: #4a5568 !important;
+        border-color: #6b7280 !important;
+    }
+    
     body.dark .table-config {
         background: #2d3748 !important;
         border-color: #4a5568 !important;
     }
     
     body.dark .table-config label {
-        color: #4f8cff !important;
+        color: #d1d5db !important;
+    }
+    
+    /* Description field styling */
+    .column-description-input {
+        font-size: 0.85rem !important;
+        color: #6b7280 !important;
+    }
+    
+    body.dark .column-description-input {
+        background: #374151 !important;
+        border-color: #4a5568 !important;
+        color: #d1d5db !important;
+    }
+    
+    .subfield-description {
+        font-style: italic;
+        line-height: 1.3;
+    }
+    
+    body.dark .subfield-description {
+        color: #9ca3af !important;
     }
     
     body.dark .table-column-row {
@@ -181,6 +215,11 @@
     
     .subfield-wrapper:hover .subfield-row {
         background: #f1f5f9 !important;
+    }
+    
+    .add-subfield-btn:hover {
+        background: #e2e8f0 !important;
+        border-color: #94a3b8;
     }
     
     .table-config {
@@ -504,11 +543,11 @@
                             <div class="subfield-wrapper" style="margin-bottom:12px;">
                                 <div class="subfield-row" style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;">
                                     <div>
-                                        <span style="font-weight:500;color:#374151;">{{ subfield.name }}</span>
+                                        <span class="subfield-name" style="font-weight:500;color:#374151;">{{ subfield.name }}</span>
                                         {% if subfield.type == 'text' %}
-                                            <span style="margin-left:8px;padding:2px 6px;border-radius:8px;font-size:0.7rem;background:#dbeafe;color:#1e40af;font-weight:500;">text</span>
+                                            <span class="subfield-type" style="margin-left:8px;padding:2px 6px;border-radius:8px;font-size:0.7rem;background:#dbeafe;color:#1e40af;font-weight:500;">text</span>
                                         {% elif subfield.type == 'number' %}
-                                            <span style="margin-left:8px;padding:2px 6px;border-radius:8px;font-size:0.7rem;background:#dcfce7;color:#15803d;font-weight:500;">number</span>
+                                            <span class="subfield-type" style="margin-left:8px;padding:2px 6px;border-radius:8px;font-size:0.7rem;background:#dcfce7;color:#15803d;font-weight:500;">number</span>
                                         {% endif %}
                                     </div>
                                     <button class="action-btn delete-subfield-btn" data-subfield="{{ subfield.name }}" title="Remove Column" style="opacity:0.6;">
@@ -521,7 +560,14 @@
                                 <div class="subfield-description" style="color:#6b7280;font-size:0.85rem;margin-top:4px;padding-left:4px;">{{ subfield.desc }}</div>
                             </div>
                             {% endfor %}
-                            
+                            <button class="add-subfield-btn" style="display:flex;align-items:center;gap:6px;padding:8px 12px;background:#f3f4f6;border:1px dashed #d1d5db;border-radius:6px;color:#6b7280;font-size:0.85rem;width:100%;margin-top:8px;">
+                                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M12 5l0 14"/>
+                                    <path d="M5 12l14 0"/>
+                                </svg>
+                                Add Table Column
+                            </button>
+                         
                         </div>
                     </div>
                     {% endif %}
@@ -555,20 +601,24 @@
                             <div class="table-columns">
                                 {% if field.type == 'table' and field.subfields %}
                                     {% for subfield in field.subfields %}
-                                    <div class="table-column-row" style="display:flex;gap:12px;margin-bottom:12px;align-items:end;">
+                                    <div class="table-column-row" style="display:flex;gap:12px;margin-bottom:12px;align-items:start;">
                                         <div style="flex:1;">
                                             <label style="font-size:0.85rem;color:#6b7280;margin-bottom:4px;">Column Name</label>
-                                            <input type="text" class="form-control" value="{{ subfield.name }}" style="font-size:0.9rem;">
+                                            <input type="text" class="form-control column-name-input" value="{{ subfield.name }}" style="font-size:0.9rem;margin-bottom:8px;" onchange="updateTableDisplay(this)">
+                                            <label style="font-size:0.85rem;color:#6b7280;margin-bottom:4px;">Description</label>
+                                            <input type="text" class="form-control column-description-input" value="{{ subfield.description if subfield.description else '' }}" placeholder="Enter column description..." style="font-size:0.9rem;" onchange="updateTableDisplay(this)">
                                         </div>
                                         <div style="flex:0 0 120px;">
                                             <label style="font-size:0.85rem;color:#6b7280;margin-bottom:4px;">Type</label>
-                                            <select class="form-control" style="font-size:0.9rem;">
+                                            <select class="form-control column-type-select" style="font-size:0.9rem;" onchange="updateTableDisplay(this)">
                                                 <option value="text" {{ 'selected' if subfield.type == 'text' else '' }}>Text</option>
                                                 <option value="number" {{ 'selected' if subfield.type == 'number' else '' }}>Number</option>
                                                 <option value="date" {{ 'selected' if subfield.type == 'date' else '' }}>Date</option>
                                             </select>
                                         </div>
-                                        <button type="button" class="dashboard-btn-outline remove-column-btn" style="padding:8px;margin-bottom:0;">×</button>
+                                        <div style="flex:0 0 auto;padding-top:24px;">
+                                            <button type="button" class="dashboard-btn-outline remove-column-btn" style="padding:8px;margin-bottom:0;">×</button>
+                                        </div>
                                     </div>
                                     {% endfor %}
                                 {% endif %}
@@ -671,9 +721,28 @@ document.addEventListener('DOMContentLoaded', function() {
                 field.classList.add('expanded');
                 editor.style.display = 'flex';
             } else if (action === 'save') {
-                // Save logic here - for now just close
+                // Save logic - close editor and ensure table subfields are visible if it's a table field
                 field.classList.remove('expanded');
                 editor.style.display = 'none';
+                
+                // If this is a table field, ensure subfields are visible
+                var fieldTypeSelect = editor.querySelector('.field-type-select');
+                var tableSubfields = field.querySelector('.table-subfields');
+                
+                if (fieldTypeSelect && fieldTypeSelect.value === 'table' && tableSubfields) {
+                    tableSubfields.style.display = 'block';
+                    field.classList.add('table-field');
+                    
+                    // Sync all table display elements
+                    var tableColumns = field.querySelectorAll('.table-column-row');
+                    tableColumns.forEach(function(columnRow) {
+                        var nameInput = columnRow.querySelector('.column-name-input');
+                        if (nameInput) {
+                            updateTableDisplay(nameInput);
+                        }
+                    });
+                }
+                
                 console.log('Saving field:', idx);
             } else if (action === 'cancel') {
                 // Cancel - just close
@@ -786,246 +855,247 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Table field functionality
     function setupTableFieldEvents() {
-        // Remove existing event listeners to prevent duplicates
+        // Field type change handler
         document.querySelectorAll('.field-type-select').forEach(function(select) {
-            select.removeEventListener('change', handleFieldTypeChange);
-            select.addEventListener('change', handleFieldTypeChange);
+            select.addEventListener('change', function() {
+                var fieldEditor = this.closest('.field-editor');
+                var tableConfig = fieldEditor.querySelector('.table-config');
+                var fieldRow = this.closest('.extractor-field-row');
+                var fieldTypeSpan = fieldRow.querySelector('span[style*="border-radius:12px"]');
+                var tableSubfields = fieldRow.querySelector('.table-subfields');
+                
+                // Update the field type display
+                if (fieldTypeSpan) {
+                    if (this.value === 'text') {
+                        fieldTypeSpan.style.background = '#dbeafe';
+                        fieldTypeSpan.style.color = '#1e40af';
+                        fieldTypeSpan.textContent = 'text';
+                    } else if (this.value === 'number') {
+                        fieldTypeSpan.style.background = '#dcfce7';
+                        fieldTypeSpan.style.color = '#15803d';
+                        fieldTypeSpan.textContent = 'number';
+                    } else if (this.value === 'date') {
+                        fieldTypeSpan.style.background = '#f3e8ff';
+                        fieldTypeSpan.style.color = '#7c3aed';
+                        fieldTypeSpan.textContent = 'date';
+                    } else if (this.value === 'table') {
+                        fieldTypeSpan.style.background = '#e0e7ff';
+                        fieldTypeSpan.style.color = '#4338ca';
+                        fieldTypeSpan.textContent = 'table';
+                    }
+                }
+                
+                // Show/hide table configuration and subfields
+                if (this.value === 'table') {
+                    if (tableConfig) tableConfig.style.display = 'block';
+                    if (!tableSubfields) {
+                        // Create table subfields display if it doesn't exist
+                        var tableSubfieldsHtml =
+                         `
+                            <div class="table-subfields" style="margin-top:16px;padding-top:16px;border-top:1px solid #e5e7eb;">
+                                <div style="font-size:0.9rem;font-weight:600;color:#6b7280;margin-bottom:12px;">Table Columns:</div>
+                                <div class="subfields-container" style="padding-left:16px;">
+                                    <button class="add-subfield-btn" style="display:flex;align-items:center;gap:6px;padding:8px 12px;background:#f3f4f6;border:1px dashed #d1d5db;border-radius:6px;color:#6b7280;font-size:0.85rem;width:100%;margin-top:8px;">
+                                        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M12 5l0 14"/>
+                                            <path d="M5 12l14 0"/>
+                                        </svg>
+                                        Add Table Column
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                        fieldRow.querySelector('.field-editor').insertAdjacentHTML('beforebegin', tableSubfieldsHtml);
+                        setupTableFieldEvents(); // Re-setup events for new elements
+                        reinitializeEventListeners(); // Re-setup all event listeners
+                        applyThemeStyles(); // Apply dark mode if needed
+                    } else {
+                        tableSubfields.style.display = 'block';
+                    }
+                    
+                    // Add table field class
+                    fieldRow.classList.add('table-field');
+                } else {
+                    if (tableConfig) tableConfig.style.display = 'none';
+                    if (tableSubfields) {
+                        // Completely remove table subfields when switching away from table type
+                        tableSubfields.remove();
+                    }
+                    fieldRow.classList.remove('table-field');
+                }
+            });
         });
         
-        // Setup add column button events (prevent duplicates)
+        // Add column button handler
         document.querySelectorAll('.add-column-btn').forEach(function(btn) {
-            var newBtn = btn.cloneNode(true);
-            btn.parentNode.replaceChild(newBtn, btn);
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                // This is now handled by reinitializeEventListeners()
+                // Calling the reinitialized event handler
+                var event = new Event('click');
+                this.dispatchEvent(event);
+            });
         });
         
-        document.querySelectorAll('.add-column-btn').forEach(function(btn) {
-            btn.addEventListener('click', handleAddColumn);
-        });
-        
-        setupRemoveColumnEvents();
-    }
-    
-    function handleFieldTypeChange() {
-        var fieldEditor = this.closest('.field-editor');
-        var tableConfig = fieldEditor.querySelector('.table-config');
-        var fieldRow = this.closest('.extractor-field-row');
-        var fieldTypeSpan = fieldRow.querySelector('span[style*="border-radius:12px"]');
-        var tableSubfields = fieldRow.querySelector('.table-subfields');
-        
-        // Update the field type display
-        if (fieldTypeSpan) {
-            if (this.value === 'text') {
-                fieldTypeSpan.style.background = '#dbeafe';
-                fieldTypeSpan.style.color = '#1e40af';
-                fieldTypeSpan.textContent = 'text';
-            } else if (this.value === 'number') {
-                fieldTypeSpan.style.background = '#dcfce7';
-                fieldTypeSpan.style.color = '#15803d';
-                fieldTypeSpan.textContent = 'number';
-            } else if (this.value === 'date') {
-                fieldTypeSpan.style.background = '#f3e8ff';
-                fieldTypeSpan.style.color = '#7c3aed';
-                fieldTypeSpan.textContent = 'date';
-            } else if (this.value === 'table') {
-                fieldTypeSpan.style.background = '#e0e7ff';
-                fieldTypeSpan.style.color = '#4338ca';
-                fieldTypeSpan.textContent = 'table';
-            }
-        }
-        
-        // Show/hide table configuration and subfields
-        if (this.value === 'table') {
-            if (tableConfig) tableConfig.style.display = 'block';
-            if (!tableSubfields) {
-                // Create table subfields display if it doesn't exist
-                var tableSubfieldsHtml = `
-                    <div class="table-subfields" style="margin-top:16px;padding-top:16px;border-top:1px solid #e5e7eb;">
-                        <div style="font-size:0.9rem;font-weight:600;color:#6b7280;margin-bottom:12px;">Table Columns:</div>
-                        <div class="subfields-container" style="padding-left:16px;">
+        // Add subfield button handler
+        document.querySelectorAll('.add-subfield-btn').forEach(function(btn) {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                var subfieldsContainer = this.closest('.subfields-container');
+                var fieldRow = this.closest('.extractor-field-row');
+                var tableColumns = fieldRow.querySelector('.table-columns');
+                
+                // Create new display element
+                var newSubfieldHtml = `
+                    <div class="subfield-wrapper" style="margin-bottom:12px;">
+                        <div class="subfield-row" style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;">
+                            <div>
+                                <span class="subfield-name" style="font-weight:500;color:#374151;">new_column</span>
+                                <span class="subfield-type" style="margin-left:8px;padding:2px 6px;border-radius:8px;font-size:0.7rem;background:#dbeafe;color:#1e40af;font-weight:500;">text</span>
+                            </div>
+                            <button class="action-btn delete-subfield-btn" data-subfield="new_column" title="Remove Column" style="opacity:0.6;">
+                                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M18 6L6 18"/>
+                                    <path d="M6 6l12 12"/>
+                                </svg>
+                            </button>
                         </div>
+                        <div class="subfield-description" style="color:#6b7280;font-size:0.85rem;margin-top:4px;padding-left:4px;">New table column description</div>
                     </div>
                 `;
-                fieldRow.querySelector('.field-editor').insertAdjacentHTML('beforebegin', tableSubfieldsHtml);
-                applyThemeStyles(); // Apply dark mode if needed
-            } else {
-                tableSubfields.style.display = 'block';
-            }
-            
-            // Add table field class
-            fieldRow.classList.add('table-field');
-        } else {
-            if (tableConfig) tableConfig.style.display = 'none';
-            if (tableSubfields) tableSubfields.style.display = 'none';
-            fieldRow.classList.remove('table-field');
-        }
-    }
-    
-    function handleAddColumn(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        
-        var tableColumns = this.closest('.table-config').querySelector('.table-columns');
-        var fieldRow = this.closest('.extractor-field-row');
-        var subfieldsContainer = fieldRow.querySelector('.subfields-container');
-        
-        // Generate unique identifier for the new column
-        var timestamp = Date.now();
-        var uniqueId = 'col_' + timestamp;
-        
-        // Create new column configuration row
-        var newColumnHtml = `
-            <div class="table-column-row" style="display:flex;gap:12px;margin-bottom:12px;align-items:end;" data-column-id="${uniqueId}">
-                <div style="flex:1;">
-                    <label style="font-size:0.85rem;color:#6b7280;margin-bottom:4px;">Column Name</label>
-                    <input type="text" class="form-control column-name-input" placeholder="column_name" style="font-size:0.9rem;" onchange="updateTableDisplay(this)">
-                </div>
-                <div style="flex:0 0 120px;">
-                    <label style="font-size:0.85rem;color:#6b7280;margin-bottom:4px;">Type</label>
-                    <select class="form-control column-type-select" style="font-size:0.9rem;" onchange="updateTableDisplay(this)">
-                        <option value="text">Text</option>
-                        <option value="number">Number</option>
-                        <option value="date">Date</option>
-                    </select>
-                </div>
-                <button type="button" class="dashboard-btn-outline remove-column-btn" style="padding:8px;margin-bottom:0;">×</button>
-            </div>
-        `;
-        tableColumns.insertAdjacentHTML('beforeend', newColumnHtml);
-        
-        // Also add to the display section with matching ID
-        if (subfieldsContainer) {
-            var newSubfieldHtml = `
-                <div class="subfield-wrapper" style="margin-bottom:12px;" data-column-id="${uniqueId}">
-                    <div class="subfield-row" style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;">
-                        <div>
-                            <span class="subfield-name" style="font-weight:500;color:#374151;">column_name</span>
-                            <span class="subfield-type" style="margin-left:8px;padding:2px 6px;border-radius:8px;font-size:0.7rem;background:#dbeafe;color:#1e40af;font-weight:500;">text</span>
+                
+                // Insert display element before the add button
+                this.insertAdjacentHTML('beforebegin', newSubfieldHtml);
+                
+                // Also add configuration row if table-columns exists
+                if (tableColumns) {
+                    var newColumnHtml = `
+                        <div class="table-column-row" style="display:flex;gap:12px;margin-bottom:12px;align-items:start;">
+                            <div style="flex:1;">
+                                <label style="font-size:0.85rem;color:#6b7280;margin-bottom:4px;">Column Name</label>
+                                <input type="text" class="form-control column-name-input" value="new_column" style="font-size:0.9rem;margin-bottom:8px;" onchange="updateTableDisplay(this)">
+                                <label style="font-size:0.85rem;color:#6b7280;margin-bottom:4px;">Description</label>
+                                <input type="text" class="form-control column-description-input" value="New table column description" style="font-size:0.9rem;" onchange="updateTableDisplay(this)">
+                            </div>
+                            <div style="flex:0 0 120px;">
+                                <label style="font-size:0.85rem;color:#6b7280;margin-bottom:4px;">Type</label>
+                                <select class="form-control column-type-select" style="font-size:0.9rem;" onchange="updateTableDisplay(this)">
+                                    <option value="text" selected>Text</option>
+                                    <option value="number">Number</option>
+                                    <option value="date">Date</option>
+                                </select>
+                            </div>
+                            <div style="flex:0 0 auto;padding-top:24px;">
+                                <button type="button" class="dashboard-btn-outline remove-column-btn" style="padding:8px;margin-bottom:0;">×</button>
+                            </div>
                         </div>
-                        <button class="action-btn delete-subfield-btn" title="Remove Column" style="opacity:0.6;">
-                            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M18 6L6 18"/>
-                                <path d="M6 6l12 12"/>
-                            </svg>
-                        </button>
-                    </div>
-                    <div class="subfield-description" style="color:#6b7280;font-size:0.85rem;margin-top:4px;padding-left:4px;">New table column description</div>
-                </div>
-            `;
-            subfieldsContainer.insertAdjacentHTML('beforeend', newSubfieldHtml);
-        }
-        
-        // Setup events for the new elements only
-        setupRemoveColumnEvents();
-        applyThemeStyles(); // Apply dark mode if needed
-    }
-    
-    // Sync existing table configuration inputs with display
-    function syncExistingTableInputs() {
-        document.querySelectorAll('.table-column-row').forEach(function(row) {
-            var nameInput = row.querySelector('input[type="text"]');
-            var typeSelect = row.querySelector('select');
-            
-            if (nameInput && !nameInput.classList.contains('column-name-input')) {
-                nameInput.classList.add('column-name-input');
-                nameInput.setAttribute('onchange', 'updateTableDisplay(this)');
-            }
-            
-            if (typeSelect && !typeSelect.classList.contains('column-type-select')) {
-                typeSelect.classList.add('column-type-select');
-                typeSelect.setAttribute('onchange', 'updateTableDisplay(this)');
-            }
+                    `;
+                    tableColumns.insertAdjacentHTML('beforeend', newColumnHtml);
+                }
+                
+                reinitializeEventListeners();
+                applyThemeStyles(); // Apply dark mode if needed
+                
+                // Trigger immediate sync
+                setTimeout(function() {
+                    var newNameInput = tableColumns.querySelector('.table-column-row:last-child .column-name-input');
+                    if (newNameInput) {
+                        updateTableDisplay(newNameInput);
+                    }
+                }, 100);
+            });
         });
+        
+        setupRemoveColumnEvents();
     }
     
     function setupRemoveColumnEvents() {
-        // Remove all existing event listeners first to prevent duplicates
         document.querySelectorAll('.remove-column-btn').forEach(function(btn) {
-            var newBtn = btn.cloneNode(true);
-            btn.parentNode.replaceChild(newBtn, btn);
-        });
-        
-        document.querySelectorAll('.delete-subfield-btn').forEach(function(btn) {
-            var newBtn = btn.cloneNode(true);
-            btn.parentNode.replaceChild(newBtn, btn);
-        });
-        
-        // Add fresh event listeners
-        document.querySelectorAll('.remove-column-btn').forEach(function(btn) {
-            btn.addEventListener('click', handleRemoveConfigColumn);
-        });
-        
-        document.querySelectorAll('.delete-subfield-btn').forEach(function(btn) {
-            btn.addEventListener('click', handleDeleteSubfield);
-        });
-    }
-    
-    function handleRemoveConfigColumn(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        
-        var columnRow = this.closest('.table-column-row');
-        var fieldRow = this.closest('.extractor-field-row');
-        var columnId = columnRow.getAttribute('data-column-id');
-        
-        // Remove from configuration
-        columnRow.remove();
-        
-        // Remove corresponding item from display section using matching ID
-        var subfieldsContainer = fieldRow.querySelector('.subfields-container');
-        if (subfieldsContainer && columnId) {
-            var matchingSubfield = subfieldsContainer.querySelector(`[data-column-id="${columnId}"]`);
-            if (matchingSubfield) {
-                matchingSubfield.remove();
-            }
-        }
-    }
-    
-    function handleDeleteSubfield(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        
-        if (confirm('Remove this table column?')) {
-            var subfieldWrapper = this.closest('.subfield-wrapper');
-            var fieldRow = this.closest('.extractor-field-row');
-            var columnId = subfieldWrapper.getAttribute('data-column-id');
-            
-            // Remove from display
-            subfieldWrapper.remove();
-            
-            // Remove corresponding item from configuration using matching ID
-            var tableColumns = fieldRow.querySelector('.table-columns');
-            if (tableColumns && columnId) {
-                var matchingColumn = tableColumns.querySelector(`[data-column-id="${columnId}"]`);
-                if (matchingColumn) {
-                    matchingColumn.remove();
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                var columnRow = this.closest('.table-column-row');
+                var fieldRow = this.closest('.extractor-field-row');
+                var columnIndex = Array.from(columnRow.parentNode.children).indexOf(columnRow);
+                
+                // Remove from configuration
+                columnRow.remove();
+                
+                // Remove corresponding item from display section
+                var subfieldsContainer = fieldRow.querySelector('.subfields-container');
+                if (subfieldsContainer) {
+                    var subfieldWrappers = subfieldsContainer.querySelectorAll('.subfield-wrapper');
+                    if (subfieldWrappers[columnIndex]) {
+                        subfieldWrappers[columnIndex].remove();
+                    }
                 }
-            }
-        }
+            });
+        });
+        
+        document.querySelectorAll('.delete-subfield-btn').forEach(function(btn) {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                if (confirm('Remove this table column?')) {
+                    var subfieldWrapper = this.closest('.subfield-wrapper');
+                    var fieldRow = this.closest('.extractor-field-row');
+                    var subfieldsContainer = subfieldWrapper.closest('.subfields-container');
+                    var subfieldIndex = Array.from(subfieldsContainer.querySelectorAll('.subfield-wrapper')).indexOf(subfieldWrapper);
+                    
+                    // Remove from display
+                    subfieldWrapper.remove();
+                    
+                    // Remove corresponding item from configuration
+                    var tableColumns = fieldRow.querySelector('.table-columns');
+                    if (tableColumns) {
+                        var columnRows = tableColumns.querySelectorAll('.table-column-row');
+                        if (columnRows[subfieldIndex]) {
+                            columnRows[subfieldIndex].remove();
+                        }
+                    }
+                }
+            });
+        });
     }
     
     // Function to update table display when configuration changes (make it global)
     window.updateTableDisplay = function(element) {
+        console.log('updateTableDisplay called');
         var columnRow = element.closest('.table-column-row');
         var fieldRow = element.closest('.extractor-field-row');
-        var columnId = columnRow.getAttribute('data-column-id');
+        var columnIndex = Array.from(columnRow.parentNode.children).indexOf(columnRow);
         var subfieldsContainer = fieldRow.querySelector('.subfields-container');
         
-        if (subfieldsContainer && columnId) {
-            var targetWrapper = subfieldsContainer.querySelector(`[data-column-id="${columnId}"]`);
+        console.log('Column index:', columnIndex);
+        console.log('Subfields container found:', !!subfieldsContainer);
+        
+        if (subfieldsContainer) {
+            var subfieldWrappers = subfieldsContainer.querySelectorAll('.subfield-wrapper');
+            var targetWrapper = subfieldWrappers[columnIndex];
+            
+            console.log('Subfield wrappers count:', subfieldWrappers.length);
+            console.log('Target wrapper found:', !!targetWrapper);
             
             if (targetWrapper) {
                 var nameInput = columnRow.querySelector('.column-name-input');
+                var descriptionInput = columnRow.querySelector('.column-description-input');
                 var typeSelect = columnRow.querySelector('.column-type-select');
                 var nameSpan = targetWrapper.querySelector('.subfield-name');
+                var descriptionDiv = targetWrapper.querySelector('.subfield-description');
                 var typeSpan = targetWrapper.querySelector('.subfield-type');
                 
                 if (nameInput && nameSpan) {
                     nameSpan.textContent = nameInput.value || 'column_name';
+                    console.log('Updated name to:', nameInput.value);
+                }
+                
+                if (descriptionInput && descriptionDiv) {
+                    descriptionDiv.textContent = descriptionInput.value || 'Column description';
+                    console.log('Updated description to:', descriptionInput.value);
                 }
                 
                 if (typeSelect && typeSpan) {
                     var type = typeSelect.value;
                     typeSpan.textContent = type;
+                    console.log('Updated type to:', type);
                     
                     // Update type badge color
                     if (type === 'text') {
@@ -1043,13 +1113,155 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
+    // Function to reinitialize all event listeners
+    function reinitializeEventListeners() {
+        // Remove existing event listeners to prevent duplicates
+        var existingButtons = document.querySelectorAll('.remove-column-btn, .add-column-btn, .delete-subfield-btn');
+        existingButtons.forEach(function(btn) {
+            var newBtn = btn.cloneNode(true);
+            btn.parentNode.replaceChild(newBtn, btn);
+        });
+        
+        // Setup remove column events
+        setupRemoveColumnEvents();
+        
+        // Setup add column events
+        document.querySelectorAll('.add-column-btn').forEach(function(btn) {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                var tableColumns = this.closest('.table-config').querySelector('.table-columns');
+                var fieldRow = this.closest('.extractor-field-row');
+                var subfieldsContainer = fieldRow.querySelector('.subfields-container');
+                
+                // Create new column configuration row
+                var newColumnHtml = `
+                    <div class="table-column-row" style="display:flex;gap:12px;margin-bottom:12px;align-items:start;">
+                        <div style="flex:1;">
+                            <label style="font-size:0.85rem;color:#6b7280;margin-bottom:4px;">Column Name</label>
+                            <input type="text" class="form-control column-name-input" placeholder="column_name" style="font-size:0.9rem;margin-bottom:8px;" onchange="updateTableDisplay(this)">
+                            <label style="font-size:0.85rem;color:#6b7280;margin-bottom:4px;">Description</label>
+                            <input type="text" class="form-control column-description-input" placeholder="Enter column description..." style="font-size:0.9rem;" onchange="updateTableDisplay(this)">
+                        </div>
+                        <div style="flex:0 0 120px;">
+                            <label style="font-size:0.85rem;color:#6b7280;margin-bottom:4px;">Type</label>
+                            <select class="form-control column-type-select" style="font-size:0.9rem;" onchange="updateTableDisplay(this)">
+                                <option value="text">Text</option>
+                                <option value="number">Number</option>
+                                <option value="date">Date</option>
+                            </select>
+                        </div>
+                        <div style="flex:0 0 auto;padding-top:24px;">
+                            <button type="button" class="dashboard-btn-outline remove-column-btn" style="padding:8px;margin-bottom:0;">×</button>
+                        </div>
+                    </div>
+                `;
+                tableColumns.insertAdjacentHTML('beforeend', newColumnHtml);
+                
+                // Also add to the display section
+                if (subfieldsContainer) {
+                    var addButton = subfieldsContainer.querySelector('.add-subfield-btn');
+                    var newSubfieldHtml = `
+                        <div class="subfield-wrapper" style="margin-bottom:12px;">
+                            <div class="subfield-row" style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;">
+                                <div>
+                                    <span class="subfield-name" style="font-weight:500;color:#374151;">column_name</span>
+                                    <span class="subfield-type" style="margin-left:8px;padding:2px 6px;border-radius:8px;font-size:0.7rem;background:#dbeafe;color:#1e40af;font-weight:500;">text</span>
+                                </div>
+                                <button class="action-btn delete-subfield-btn" data-subfield="column_name" title="Remove Column" style="opacity:0.6;">
+                                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M18 6L6 18"/>
+                                        <path d="M6 6l12 12"/>
+                                    </svg>
+                                </button>
+                            </div>
+                            <div class="subfield-description" style="color:#6b7280;font-size:0.85rem;margin-top:4px;padding-left:4px;">Column description</div>
+                        </div>
+                    `;
+                    addButton.insertAdjacentHTML('beforebegin', newSubfieldHtml);
+                }
+                
+                reinitializeEventListeners();
+                applyThemeStyles(); // Apply dark mode if needed
+                
+                // Trigger an update to sync the display immediately
+                var newNameInput = tableColumns.querySelector('.table-column-row:last-child .column-name-input');
+                if (newNameInput) {
+                    updateTableDisplay(newNameInput);
+                }
+            });
+        });
+        
+        // Setup delete subfield events
+        document.querySelectorAll('.delete-subfield-btn').forEach(function(btn) {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                var wrapper = this.closest('.subfield-wrapper');
+                var fieldRow = this.closest('.extractor-field-row');
+                var columnIndex = Array.from(wrapper.parentNode.children).indexOf(wrapper);
+                
+                // Remove from display
+                wrapper.remove();
+                
+                // Remove corresponding configuration row
+                var tableColumns = fieldRow.querySelector('.table-columns');
+                if (tableColumns) {
+                    var columnRows = tableColumns.querySelectorAll('.table-column-row');
+                    if (columnRows[columnIndex]) {
+                        columnRows[columnIndex].remove();
+                    }
+                }
+            });
+        });
+        
+        console.log('Event listeners reinitialized');
+    }
+    
     // Initialize table field events
     setupTableFieldEvents();
     
-    // Sync existing table inputs
-    syncExistingTableInputs();
+    // Initialize all event listeners
+    reinitializeEventListeners();
+    
+    // Add event listener for "Add New Field" button
+    var addFieldBtn = document.querySelector('.extractor-add-field-btn');
+    if (addFieldBtn) {
+        addFieldBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            alert('Add New Field functionality - this would add a new schema field');
+            console.log('Add New Field button clicked');
+        });
+    }
+    
+    // Add event listeners for field description updates
+    document.querySelectorAll('.field-desc-input').forEach(function(textarea) {
+        textarea.addEventListener('input', function() {
+            var fieldRow = this.closest('.extractor-field-row');
+            var descriptionDiv = fieldRow.querySelector('div[style*="color:#888"]');
+            
+            if (descriptionDiv) {
+                descriptionDiv.textContent = this.value || 'Field description';
+            }
+        });
+    });
+    
+    // Add event listener for "Extract Document" button
+    var extractBtn = document.querySelector('.extractor-bottom-bar .dashboard-btn-primary');
+    if (extractBtn) {
+        extractBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            alert('Extract Document functionality - this would process the uploaded document');
+            console.log('Extract Document button clicked');
+        });
+    }
+    
+    // Global test function
+    window.testJS = function() {
+        alert('JavaScript is working!');
+        console.log('JavaScript test successful');
+    };
     
     console.log('Extractor page initialized successfully');
+    console.log('You can test JavaScript by running testJS() in the console');
 });
 </script>
 {% endblock %}

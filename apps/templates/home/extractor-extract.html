@@ -41,8 +41,11 @@
     body.dark .subfield-description {
         color: #d1d5db !important;
     }
-    
+    .add-subfield-btn {
+     display: none !important;
+    }
     body.dark .add-subfield-btn {
+       
         background: #374151 !important;
         border-color: #4a5568 !important;
         color: #d1d5db !important;
@@ -545,9 +548,11 @@
                                     <div>
                                         <span class="subfield-name" style="font-weight:500;color:#374151;">{{ subfield.name }}</span>
                                         {% if subfield.type == 'text' %}
-                                            <span class="subfield-type" style="margin-left:8px;padding:2px 6px;border-radius:8px;font-size:0.7rem;background:#dbeafe;color:#1e40af;font-weight:500;">text</span>
+                                            <span class="subfield-type" style="margin-left:8px;padding:2px 6px;border-radius:8px;font-size:0.7rem;background:#dbeafe;color:#1e40af !important;font-weight:500;">text</span>
                                         {% elif subfield.type == 'number' %}
-                                            <span class="subfield-type" style="margin-left:8px;padding:2px 6px;border-radius:8px;font-size:0.7rem;background:#dcfce7;color:#15803d;font-weight:500;">number</span>
+                                            <span class="subfield-type" style="margin-left:8px;padding:2px 6px;border-radius:8px;font-size:0.7rem;background:#dcfce7;color:#15803d !important;font-weight:500;">number</span>
+                                        {% elif subfield.type == 'date' %}
+                                            <span class="subfield-type" style="margin-left:8px;padding:2px 6px;border-radius:8px;font-size:0.7rem;background:#f3e8ff;color:#7c3aed !important;font-weight:500;">date</span>
                                         {% endif %}
                                     </div>
                                     <button class="action-btn delete-subfield-btn" data-subfield="{{ subfield.name }}" title="Remove Column" style="opacity:0.6;">
@@ -567,7 +572,6 @@
                                 </svg>
                                 Add Table Column
                             </button>
-                         
                         </div>
                     </div>
                     {% endif %}
@@ -951,7 +955,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         <div class="subfield-row" style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;">
                             <div>
                                 <span class="subfield-name" style="font-weight:500;color:#374151;">new_column</span>
-                                <span class="subfield-type" style="margin-left:8px;padding:2px 6px;border-radius:8px;font-size:0.7rem;background:#dbeafe;color:#1e40af;font-weight:500;">text</span>
+                                <span class="subfield-type" style="margin-left:8px;padding:2px 6px;border-radius:8px;font-size:0.7rem;background:#dbeafe;color:#1e40af !important;font-weight:500;">text</span>
                             </div>
                             <button class="action-btn delete-subfield-btn" data-subfield="new_column" title="Remove Column" style="opacity:0.6;">
                                 <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1100,13 +1104,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Update type badge color
                     if (type === 'text') {
                         typeSpan.style.background = '#dbeafe';
-                        typeSpan.style.color = '#1e40af';
+                        typeSpan.style.setProperty('color', '#1e40af', 'important');
                     } else if (type === 'number') {
                         typeSpan.style.background = '#dcfce7';
-                        typeSpan.style.color = '#15803d';
+                        typeSpan.style.setProperty('color', '#15803d', 'important');
                     } else if (type === 'date') {
                         typeSpan.style.background = '#f3e8ff';
-                        typeSpan.style.color = '#7c3aed';
+                        typeSpan.style.setProperty('color', '#7c3aed', 'important');
                     }
                 }
             }
@@ -1165,7 +1169,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             <div class="subfield-row" style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;">
                                 <div>
                                     <span class="subfield-name" style="font-weight:500;color:#374151;">column_name</span>
-                                    <span class="subfield-type" style="margin-left:8px;padding:2px 6px;border-radius:8px;font-size:0.7rem;background:#dbeafe;color:#1e40af;font-weight:500;">text</span>
+                                    <span class="subfield-type" style="margin-left:8px;padding:2px 6px;border-radius:8px;font-size:0.7rem;background:#dbeafe;color:#1e40af !important;font-weight:500;">text</span>
                                 </div>
                                 <button class="action-btn delete-subfield-btn" data-subfield="column_name" title="Remove Column" style="opacity:0.6;">
                                     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

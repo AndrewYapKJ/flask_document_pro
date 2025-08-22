@@ -925,6 +925,14 @@ document.addEventListener('DOMContentLoaded', function() {
                         // Completely remove table subfields when switching away from table type
                         tableSubfields.remove();
                     }
+                    
+                    // Also clear the table configuration (edit mode) to prevent old columns from persisting
+                    var tableColumns = fieldRow.querySelector('.table-columns');
+                    if (tableColumns) {
+                        // Remove all existing column configurations
+                        tableColumns.innerHTML = '';
+                    }
+                    
                     fieldRow.classList.remove('table-field');
                 }
             });

@@ -5,6 +5,17 @@
 
 class ExtractorManager {
     constructor() {
+        // Initialize PDF-related properties
+        this.currentPDF = null;
+        this.currentContainer = null;
+        this.baseScale = null;
+        this.baseViewport = null;
+        this.resizeListener = null;
+        this.resizeObserver = null;
+        this.sidebarObserver = null;
+        this.resizeTimeout = null;
+        this.lastContainerWidth = 0;
+        
         this.init();
     }
 
@@ -646,6 +657,9 @@ class ExtractorManager {
             console.error('Document content container not found');
             return;
         }
+
+        // Cleanup any existing observers
+        this.cleanupPDFObservers();
         
         // Clear existing content
         documentContent.innerHTML = '<div class="loading-preview">Loading document...</div>';
@@ -698,13 +712,30 @@ class ExtractorManager {
             pagesContainer.className = 'pdf-pages-container';
             container.appendChild(pagesContainer);
 
-            // Render all pages
+            // Calculate consistent scale for all pages based on first page
+            const firstPage = await pdf.getPage(1);
+            const firstPageViewport = firstPage.getViewport({ scale: 1 });
+            
+            // Get actual container width and calculate scale once for all pages
+            const containerWidth = pagesContainer.clientWidth || container.clientWidth || 600;
+            const baseDisplayScale = Math.min((containerWidth - 20) / firstPageViewport.width, 3);
+            
+            // Store scale and PDF reference for responsive updates
+            this.currentPDF = pdf;
+            this.currentContainer = pagesContainer;
+            this.baseScale = baseDisplayScale;
+            this.baseViewport = firstPageViewport;
+
+            // Render all pages with consistent scale
             for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-                await this.renderPDFPage(pdf, pageNum, pagesContainer);
+                await this.renderPDFPage(pdf, pageNum, pagesContainer, baseDisplayScale);
             }
 
             // Clean up the object URL
             URL.revokeObjectURL(fileURL);
+            
+            // Add resize listener for responsive behavior
+            this.setupPDFResizeListener();
             
         } catch (error) {
             console.error('Error loading PDF:', error);
@@ -716,7 +747,7 @@ class ExtractorManager {
         }
     }
 
-    async renderPDFPage(pdf, pageNum, container) {
+    async renderPDFPage(pdf, pageNum, container, displayScale = null) {
         try {
             const page = await pdf.getPage(pageNum);
             
@@ -727,24 +758,29 @@ class ExtractorManager {
             // Get device pixel ratio for high-DPI displays
             const devicePixelRatio = window.devicePixelRatio || 1;
             
-            // Calculate scale for full width display with minimal padding
-            const containerWidth = container.clientWidth || 600;
+            // Use provided scale or calculate new one
+            let finalDisplayScale;
+            if (displayScale !== null) {
+                finalDisplayScale = displayScale;
+            } else {
+                // Fallback calculation if no scale provided
+                const containerWidth = container.clientWidth || 600;
+                const viewport = page.getViewport({ scale: 1 });
+                finalDisplayScale = Math.min((containerWidth - 20) / viewport.width, 3);
+            }
+            
+            // Calculate viewport and render scale
             const viewport = page.getViewport({ scale: 1 });
-            
-            // Scale to fill container width with just 20px total padding (10px each side)
-            const displayScale = Math.min((containerWidth - 20) / viewport.width, 3); 
-            // Render at much higher quality (3x the display scale) for crisp detail
-            const renderScale = displayScale * 3 * devicePixelRatio; 
-            
+            const renderScale = finalDisplayScale * 3 * devicePixelRatio; 
             const scaledViewport = page.getViewport({ scale: renderScale });
 
             // Set canvas dimensions (high resolution)
             canvas.width = scaledViewport.width;
             canvas.height = scaledViewport.height;
             
-            // Set display dimensions (scaled down for smaller, crisp display)
-            const displayWidth = (viewport.width * displayScale);
-            const displayHeight = (viewport.height * displayScale);
+            // Set display dimensions (consistent across all pages)
+            const displayWidth = (viewport.width * finalDisplayScale);
+            const displayHeight = (viewport.height * finalDisplayScale);
             
             canvas.style.width = displayWidth + 'px';
             canvas.style.height = displayHeight + 'px';
@@ -776,6 +812,118 @@ class ExtractorManager {
             
         } catch (error) {
             console.error(`Error rendering page ${pageNum}:`, error);
+        }
+    }
+
+    setupPDFResizeListener() {
+        // Remove existing listeners if any
+        if (this.resizeListener) {
+            window.removeEventListener('resize', this.resizeListener);
+        }
+        if (this.resizeObserver) {
+            this.resizeObserver.disconnect();
+        }
+        
+        // Use ResizeObserver for immediate container width changes
+        if (this.currentContainer && 'ResizeObserver' in window) {
+            this.resizeObserver = new ResizeObserver((entries) => {
+                for (let entry of entries) {
+                    const newWidth = entry.contentRect.width;
+                    if (Math.abs(newWidth - this.lastContainerWidth) > 10) {
+                        this.lastContainerWidth = newWidth;
+                        clearTimeout(this.resizeTimeout);
+                        this.resizeTimeout = setTimeout(() => {
+                            this.handlePDFResize();
+                        }, 100);
+                    }
+                }
+            });
+            this.resizeObserver.observe(this.currentContainer);
+            this.lastContainerWidth = this.currentContainer.clientWidth;
+        }
+        
+        // Fallback window resize listener
+        this.resizeListener = () => {
+            clearTimeout(this.resizeTimeout);
+            this.resizeTimeout = setTimeout(() => {
+                this.handlePDFResize();
+            }, 150);
+        };
+        window.addEventListener('resize', this.resizeListener);
+        
+        // Listen for sidebar toggle specifically
+        const navbar = document.querySelector('.pcoded-navbar');
+        if (navbar) {
+            const observer = new MutationObserver(() => {
+                setTimeout(() => {
+                    this.handlePDFResize();
+                }, 350); // Wait for sidebar animation
+            });
+            observer.observe(navbar, { 
+                attributes: true, 
+                attributeFilter: ['class'] 
+            });
+            this.sidebarObserver = observer;
+        }
+    }
+
+    handlePDFResize() {
+        if (!this.currentPDF || !this.currentContainer || !this.baseViewport) {
+            return;
+        }
+        
+        // Force a reflow to get accurate container width
+        this.currentContainer.style.display = 'none';
+        this.currentContainer.offsetHeight; // Trigger reflow
+        this.currentContainer.style.display = '';
+        
+        // Get the actual current container width
+        const containerWidth = this.currentContainer.clientWidth || this.currentContainer.offsetWidth || 600;
+        const newDisplayScale = Math.min((containerWidth - 20) / this.baseViewport.width, 3);
+        
+        console.log('Resize detected:', {
+            containerWidth,
+            oldScale: this.baseScale,
+            newScale: newDisplayScale
+        });
+        
+        // Re-render if scale changed (even small changes for responsiveness)
+        if (Math.abs(newDisplayScale - this.baseScale) > 0.02) {
+            this.baseScale = newDisplayScale;
+            this.reRenderPDFPages();
+        }
+    }
+
+    async reRenderPDFPages() {
+        if (!this.currentPDF || !this.currentContainer) {
+            return;
+        }
+        
+        // Clear existing pages
+        this.currentContainer.innerHTML = '';
+        
+        // Re-render all pages with new scale
+        for (let pageNum = 1; pageNum <= this.currentPDF.numPages; pageNum++) {
+            await this.renderPDFPage(this.currentPDF, pageNum, this.currentContainer, this.baseScale);
+        }
+    }
+
+    cleanupPDFObservers() {
+        if (this.resizeListener) {
+            window.removeEventListener('resize', this.resizeListener);
+            this.resizeListener = null;
+        }
+        if (this.resizeObserver) {
+            this.resizeObserver.disconnect();
+            this.resizeObserver = null;
+        }
+        if (this.sidebarObserver) {
+            this.sidebarObserver.disconnect();
+            this.sidebarObserver = null;
+        }
+        if (this.resizeTimeout) {
+            clearTimeout(this.resizeTimeout);
+            this.resizeTimeout = null;
         }
     }
 

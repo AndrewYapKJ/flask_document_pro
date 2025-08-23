@@ -103,6 +103,43 @@ class ExtractorManager {
         this.collapseAllFields();
         field.classList.add('expanded');
         editor.style.display = 'flex';
+
+                // Store original field values for cancel functionality
+        const fieldNameInput = editor.querySelector('.field-name-input');
+        const fieldDescInput = editor.querySelector('.field-desc-input');
+        const fieldTypeSelect = editor.querySelector('.field-type-select');
+        
+        if (fieldNameInput) fieldNameInput.dataset.originalValue = fieldNameInput.value;
+        if (fieldDescInput) fieldDescInput.dataset.originalValue = fieldDescInput.value;
+        if (fieldTypeSelect) fieldTypeSelect.dataset.originalValue = fieldTypeSelect.value;
+
+        // Store original table column values if this is a table field
+        const tableColumns = editor.querySelectorAll('.table-column-row');
+        tableColumns.forEach(columnRow => {
+            const nameInput = columnRow.querySelector('.column-name-input');
+            const descInput = columnRow.querySelector('.column-description-input');
+            const typeSelect = columnRow.querySelector('.column-type-select');
+            
+            if (nameInput) nameInput.dataset.originalValue = nameInput.value;
+            if (descInput) descInput.dataset.originalValue = descInput.value;
+            if (typeSelect) typeSelect.dataset.originalValue = typeSelect.value;
+        });
+
+        // Store original display values
+        const fieldNameSpan = field.querySelector('.field-name');
+        const fieldDescDiv = field.querySelector('.field-description');
+        const typeBadge = field.querySelector('.field-type-badge');
+
+        if (fieldNameSpan) {
+            editor.dataset.originalFieldName = fieldNameSpan.textContent;
+        }
+        if (fieldDescDiv) {
+            editor.dataset.originalFieldDesc = fieldDescDiv.textContent;
+        }
+        if (typeBadge) {
+            editor.dataset.originalFieldType = typeBadge.textContent;
+            editor.dataset.originalFieldTypeClass = typeBadge.className;
+        }
     }
 
     saveField(field, editor, idx) {
@@ -112,7 +149,7 @@ class ExtractorManager {
         field.classList.remove('expanded');
         editor.style.display = 'none';
 
-        // If this is a table field, ensure subfields are visible
+        // If this is a table field, ensure subfields are visible and synced
         const fieldTypeSelect = editor.querySelector('.field-type-select');
         const tableSubfields = field.querySelector('.table-subfields');
 
@@ -120,17 +157,68 @@ class ExtractorManager {
             tableSubfields.style.display = 'block';
             field.classList.add('table-field');
 
-            // Sync all table display elements
-            const tableColumns = field.querySelectorAll('.table-column-row');
-            tableColumns.forEach(columnRow => {
-                const nameInput = columnRow.querySelector('.column-name-input');
-                if (nameInput) {
-                    this.updateTableDisplay(nameInput);
-                }
-            });
+            // Sync configuration columns to display elements
+            this.syncTableConfigurationToDisplay(field, editor);
         }
 
         console.log('Saving field:', idx);
+    }
+
+    syncTableConfigurationToDisplay(field, editor) {
+        const tableColumns = editor.querySelectorAll('.table-column-row');
+        const subfieldsContainer = field.querySelector('.subfields-container');
+        const addSubfieldBtn = subfieldsContainer?.querySelector('.add-subfield-btn');
+        
+        if (!subfieldsContainer || !addSubfieldBtn) return;
+
+        // Clear existing subfield wrappers (except the add button)
+        const existingWrappers = subfieldsContainer.querySelectorAll('.subfield-wrapper');
+        existingWrappers.forEach(wrapper => wrapper.remove());
+
+        // Create display elements for each configuration row
+        tableColumns.forEach((columnRow, index) => {
+            const nameInput = columnRow.querySelector('.column-name-input');
+            const descInput = columnRow.querySelector('.column-description-input');
+            const typeSelect = columnRow.querySelector('.column-type-select');
+
+            const name = nameInput?.value || 'new_column';
+            const desc = descInput?.value || 'Column description';
+            const type = typeSelect?.value || 'text';
+
+            const subfieldHtml = `
+                <div class="subfield-wrapper">
+                    <div class="subfield-row">
+                        <div>
+                            <span class="subfield-name">${name}</span>
+                            <span class="subfield-type ${type}">${type}</span>
+                        </div>
+                        <button class="column-delete-btn delete-subfield-btn" data-subfield="${name}" title="Remove Column">×</button>
+                    </div>
+                    <div class="subfield-description">${desc}</div>
+                </div>
+            `;
+
+            addSubfieldBtn.insertAdjacentHTML('beforebegin', subfieldHtml);
+        });
+
+        // Add event listeners to the new delete buttons
+        const newDeleteBtns = subfieldsContainer.querySelectorAll('.delete-subfield-btn');
+        newDeleteBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => this.handleDeleteSubfield(e));
+        });
+
+        // Update the remove column buttons in configuration to use the full remove handler
+        tableColumns.forEach(columnRow => {
+            const removeBtn = columnRow.querySelector('.remove-column-btn');
+            if (removeBtn) {
+                // Remove old event listener and add new one
+                const newBtn = removeBtn.cloneNode(true);
+                removeBtn.parentNode.replaceChild(newBtn, removeBtn);
+                newBtn.addEventListener('click', (e) => this.handleRemoveColumn(e));
+            }
+        });
+
+        this.applyThemeStyles();
     }
 
     updateFieldDisplay(field, editor) {
@@ -169,6 +257,96 @@ class ExtractorManager {
     }
 
     cancelEdit(field, editor) {
+        // Restore original input values
+        const nameInput = editor.querySelector('.field-name-input');
+        const descInput = editor.querySelector('.field-desc-input');
+        const typeSelect = editor.querySelector('.field-type-select');
+
+        if (nameInput && nameInput.dataset.originalValue !== undefined) {
+            nameInput.value = nameInput.dataset.originalValue;
+        }
+        if (descInput && descInput.dataset.originalValue !== undefined) {
+            descInput.value = descInput.dataset.originalValue;
+        }
+        if (typeSelect && typeSelect.dataset.originalValue !== undefined) {
+            typeSelect.value = typeSelect.dataset.originalValue;
+        }
+
+        // Restore original display values
+        const fieldNameSpan = field.querySelector('.field-name');
+        const fieldDescDiv = field.querySelector('.field-description');
+        const typeBadge = field.querySelector('.field-type-badge');
+
+        if (fieldNameSpan && editor.dataset.originalFieldName !== undefined) {
+            fieldNameSpan.textContent = editor.dataset.originalFieldName;
+        }
+        if (fieldDescDiv && editor.dataset.originalFieldDesc !== undefined) {
+            fieldDescDiv.textContent = editor.dataset.originalFieldDesc;
+        }
+        if (typeBadge && editor.dataset.originalFieldType !== undefined) {
+            typeBadge.textContent = editor.dataset.originalFieldType;
+            if (editor.dataset.originalFieldTypeClass !== undefined) {
+                typeBadge.className = editor.dataset.originalFieldTypeClass;
+            }
+        }
+
+        // Restore field row class for table fields
+        const originalType = editor.dataset.originalFieldType;
+        if (originalType === 'table') {
+            field.classList.add('table-field');
+        } else {
+            field.classList.remove('table-field');
+        }
+
+        // Restore original table column values if this is a table field
+        const tableColumns = editor.querySelectorAll('.table-column-row');
+        tableColumns.forEach((columnRow, index) => {
+            const nameInput = columnRow.querySelector('.column-name-input');
+            const descInput = columnRow.querySelector('.column-description-input');
+            const typeSelect = columnRow.querySelector('.column-type-select');
+            
+            if (nameInput && nameInput.dataset.originalValue !== undefined) {
+                nameInput.value = nameInput.dataset.originalValue;
+            }
+            if (descInput && descInput.dataset.originalValue !== undefined) {
+                descInput.value = descInput.dataset.originalValue;
+            }
+            if (typeSelect && typeSelect.dataset.originalValue !== undefined) {
+                typeSelect.value = typeSelect.dataset.originalValue;
+            }
+        });
+
+        // Remove any newly added table columns that weren't saved
+        // (columns without originalValue data are newly added during this edit session)
+        const newlyAddedColumns = Array.from(tableColumns).filter(columnRow => {
+            const nameInput = columnRow.querySelector('.column-name-input');
+            return nameInput && nameInput.dataset.originalValue === undefined;
+        });
+        newlyAddedColumns.forEach(columnRow => columnRow.remove());
+
+        // Update the table display to reflect the restored values
+        if (originalType === 'table') {
+            const remainingColumns = editor.querySelectorAll('.table-column-row');
+            remainingColumns.forEach((columnRow, index) => {
+                const subfieldsContainer = field.querySelector('.table-subfields');
+                if (subfieldsContainer) {
+                    const subfieldWrappers = subfieldsContainer.querySelectorAll('.subfield-wrapper');
+                    const targetWrapper = subfieldWrappers[index];
+                    if (targetWrapper) {
+                        this.syncSubfieldDisplay(columnRow, targetWrapper);
+                    }
+                }
+            });
+        }
+
+        // Hide table subfields if type changed back from table
+        const tableSubfields = field.querySelector('.table-subfields');
+        if (tableSubfields && originalType !== 'table') {
+            tableSubfields.style.display = 'none';
+        } else if (tableSubfields && originalType === 'table') {
+            tableSubfields.style.display = 'block';
+        }
+
         field.classList.remove('expanded');
         editor.style.display = 'none';
     }
@@ -385,15 +563,19 @@ class ExtractorManager {
         const fieldEditor = select.closest('.field-editor');
         const tableConfig = fieldEditor.querySelector('.table-config');
         const fieldRow = select.closest('.extractor-field-row');
-        const fieldTypeSpan = fieldRow.querySelector('span[style*="border-radius:12px"]');
+        const fieldTypeSpan = fieldRow.querySelector('.field-type-badge');
         const tableSubfields = fieldRow.querySelector('.table-subfields');
 
-        // Update the field type display
-        if (fieldTypeSpan) {
+        // Only update the display if we're not currently in edit mode
+        // We can check this by seeing if the field is expanded
+        const isEditing = fieldRow.classList.contains('expanded');
+        
+        if (!isEditing && fieldTypeSpan) {
+            // Update the field type display only when not editing
             this.updateFieldTypeDisplay(fieldTypeSpan, select.value);
         }
 
-        // Show/hide table configuration and subfields
+        // Show/hide table configuration and subfields based on selection
         if (select.value === 'table') {
             this.showTableConfiguration(tableConfig, tableSubfields, fieldRow);
         } else {
@@ -485,51 +667,24 @@ class ExtractorManager {
     handleAddColumn(e) {
         e.preventDefault();
         const fieldEditor = e.target.closest('.field-editor');
-        const fieldRow = e.target.closest('.extractor-field-row');
         const tableColumns = fieldEditor.querySelector('.table-columns');
-        const subfieldsContainer = fieldRow.querySelector('.subfields-container');
-        const addSubfieldBtn = subfieldsContainer?.querySelector('.add-subfield-btn');
         
-        // Create new column configuration row in edit mode
+        // Only create new column configuration row in edit mode
+        // The display element will be created when saving
         const newColumnHtml = this.createColumnConfigHtml();
         tableColumns.insertAdjacentHTML('beforeend', newColumnHtml);
         
-        // Create corresponding display element in display mode
-        if (addSubfieldBtn) {
-            const newSubfieldHtml = this.createSubfieldHtml();
-            addSubfieldBtn.insertAdjacentHTML('beforebegin', newSubfieldHtml);
-        }
-        
-        // Add event listeners to the newly created elements only
+        // Add event listeners to the newly created configuration row only
         const newColumnRow = tableColumns.querySelector('.table-column-row:last-child');
         if (newColumnRow) {
             // Add event listener to the remove button
             const removeBtn = newColumnRow.querySelector('.remove-column-btn');
             if (removeBtn) {
-                removeBtn.addEventListener('click', (e) => this.handleRemoveColumn(e));
-            }
-        }
-        
-        // Add event listener to the new subfield delete button if it exists
-        if (subfieldsContainer) {
-            const newSubfieldWrapper = subfieldsContainer.querySelector('.subfield-wrapper:last-of-type');
-            if (newSubfieldWrapper) {
-                const deleteBtn = newSubfieldWrapper.querySelector('.delete-subfield-btn');
-                if (deleteBtn) {
-                    deleteBtn.addEventListener('click', (e) => this.handleDeleteSubfield(e));
-                }
+                removeBtn.addEventListener('click', (e) => this.handleRemoveColumnConfig(e));
             }
         }
         
         this.applyThemeStyles();
-        
-        // Trigger immediate sync to update display
-        setTimeout(() => {
-            const newNameInput = tableColumns.querySelector('.table-column-row:last-child .column-name-input');
-            if (newNameInput) {
-                this.updateTableDisplay(newNameInput);
-            }
-        }, 100);
     }
 
     handleAddSubfield(e) {
@@ -597,13 +752,13 @@ class ExtractorManager {
             <div class="table-column-row">
                 <div class="column-input-group">
                     <label class="column-label">Column Name</label>
-                    <input type="text" class="form-control column-name-input" value="new_column" onchange="extractorManager.updateTableDisplay(this)">
+                    <input type="text" class="form-control column-name-input" value="new_column">
                     <label class="column-label">Description</label>
-                    <input type="text" class="form-control column-description-input" value="New table column description" onchange="extractorManager.updateTableDisplay(this)">
+                    <input type="text" class="form-control column-description-input" value="New table column description" placeholder="Enter column description...">
                 </div>
                 <div class="column-type-group">
                     <label class="column-label">Type</label>
-                    <select class="form-control column-type-select" onchange="extractorManager.updateTableDisplay(this)">
+                    <select class="form-control column-type-select">
                         <option value="text" selected>Text</option>
                         <option value="number">Number</option>
                         <option value="date">Date</option>
@@ -658,8 +813,8 @@ class ExtractorManager {
             const isDark = document.body.classList.contains('dark');
             const colors = this.getTypeColors(type, isDark);
             if (colors) {
-                typeSpan.style.setProperty('color', colors.color, 'important');
-                typeSpan.style.background = colors.background;
+                typeSpan.style.setProperty('color', colors.color, );
+               //  typeSpan.style.background = colors.background;
             }
         }
     }
@@ -691,6 +846,14 @@ class ExtractorManager {
                 subfieldWrappers[columnIndex].remove();
             }
         }
+    }
+
+    handleRemoveColumnConfig(e) {
+        e.preventDefault();
+        // Only remove the configuration row, not the display element
+        // This is used when removing columns that haven't been saved yet
+        const columnRow = e.target.closest('.table-column-row');
+        columnRow.remove();
     }
 
     handleDeleteSubfield(e) {
@@ -750,7 +913,7 @@ class ExtractorManager {
             const text = span.textContent.toLowerCase();
             const colors = this.getTypeColors(text, isDark);
             if (colors) {
-                span.style.background = colors.background + ' !important';
+               //  span.style.background = colors.background + ' !important';
                 span.style.color = colors.color + ' !important';
             }
         });
@@ -760,8 +923,8 @@ class ExtractorManager {
             const text = span.textContent.toLowerCase();
             const colors = this.getTypeColors(text, isDark);
             if (colors) {
-                span.style.background = colors.background + ' !important';
-                span.style.setProperty('color', colors.color, 'important');
+               //  span.style.background = colors.background + ' !important';
+               //  span.style.setProperty('color', colors.color, 'important');
             }
         });
     }

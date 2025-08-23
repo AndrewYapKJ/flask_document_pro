@@ -137,13 +137,13 @@
                                 <div class="table-column-row">
                                     <div class="column-input-group">
                                         <label class="column-label">Column Name</label>
-                                        <input type="text" class="form-control column-name-input" value="{{ subfield.name }}" onchange="updateTableDisplay(this)">
+                                        <input type="text" class="form-control column-name-input" value="{{ subfield.name }}">
                                         <label class="column-label">Description</label>
-                                        <input type="text" class="form-control column-description-input" value="{{ subfield.desc or '' }}" placeholder="Enter column description..." onchange="updateTableDisplay(this)">
+                                        <input type="text" class="form-control column-description-input" value="{{ subfield.desc or '' }}" placeholder="Enter column description...">
                                     </div>
                                     <div class="column-type-group">
                                         <label class="column-label">Type</label>
-                                        <select class="form-control column-type-select" onchange="updateTableDisplay(this)">
+                                        <select class="form-control column-type-select">
                                             <option value="text" {{ 'selected' if subfield.type == 'text' else '' }}>Text</option>
                                             <option value="number" {{ 'selected' if subfield.type == 'number' else '' }}>Number</option>
                                             <option value="date" {{ 'selected' if subfield.type == 'date' else '' }}>Date</option>

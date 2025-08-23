@@ -86,9 +86,7 @@ body.dark .subfield-row:hover {
     background: #4a5568 !important;
 }
 
-body.dark .subfield-row span {
-    color: #f7fafc !important;
-}
+
 
 body.dark .subfield-wrapper:hover .subfield-row {
     background: #4a5568 !important;

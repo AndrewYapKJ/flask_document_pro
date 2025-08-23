@@ -34,6 +34,15 @@ class ExtractorManager {
             addFieldBtn.addEventListener('click', (e) => this.handleAddField(e));
         }
 
+        // Upload button
+        const uploadBtn = document.querySelector('.upload-btn');
+        if (uploadBtn) {
+            uploadBtn.addEventListener('click', (e) => this.handleUpload(e));
+        }
+
+        // Drag and drop functionality
+        this.setupDragAndDrop();
+
         // Extract button
         const extractBtn = document.querySelector('.extractor-bottom-bar .dashboard-btn-primary');
         if (extractBtn) {
@@ -42,6 +51,40 @@ class ExtractorManager {
 
         // Setup real-time field editing
         this.setupRealTimeFieldEditing();
+    }
+
+    setupDragAndDrop() {
+        const uploadCard = document.querySelector('.upload-card');
+        if (!uploadCard) return;
+
+        // Prevent default drag behaviors
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            uploadCard.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+            });
+        });
+
+        // Highlight drop area when item is dragged over it
+        ['dragenter', 'dragover'].forEach(eventName => {
+            uploadCard.addEventListener(eventName, () => {
+                uploadCard.classList.add('drag-highlight');
+            });
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            uploadCard.addEventListener(eventName, () => {
+                uploadCard.classList.remove('drag-highlight');
+            });
+        });
+
+        // Handle dropped files
+        uploadCard.addEventListener('drop', (e) => {
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                this.processUploadedFile(files[0]);
+            }
+        });
     }
 
     setupRealTimeFieldEditing() {
@@ -499,10 +542,608 @@ class ExtractorManager {
         `;
     }
 
+    handleUpload(e) {
+        e.preventDefault();
+        console.log('Upload button clicked');
+        
+        // Create file input element
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = '.pdf,.png,.jpg,.jpeg';
+        fileInput.multiple = false;
+        
+        // Handle file selection
+        fileInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                console.log('File selected from input:', file.name);
+                this.processUploadedFile(file);
+            }
+        });
+        
+        // Trigger file picker
+        fileInput.click();
+    }
+
+    processUploadedFile(file) {
+        console.log('Processing uploaded file:', file.name);
+        
+        // Validate file size (10MB limit)
+        const maxSize = 10 * 1024 * 1024; // 10MB in bytes
+        if (file.size > maxSize) {
+            alert('File size exceeds 10MB limit. Please choose a smaller file.');
+            return;
+        }
+
+        // Validate file type
+        const allowedTypes = ['application/pdf', 'image/png', 'image/jpeg', 'image/jpg'];
+        if (!allowedTypes.includes(file.type)) {
+            alert('Please select a PDF, PNG, or JPG file.');
+            return;
+        }
+
+        console.log('File validation passed, updating display...');
+        
+        // Update UI to show selected file
+        this.updateUploadDisplay(file);
+        
+        // Store the file for extraction
+        this.selectedFile = file;
+        
+        console.log('File selected:', file.name, 'Size:', file.size, 'Type:', file.type);
+    }
+
+    updateUploadDisplay(file) {
+        console.log('Updating upload display for file:', file.name);
+        
+        const uploadCard = document.querySelector('.upload-card');
+        const documentPreview = document.querySelector('.document-preview-container');
+        
+        if (!uploadCard || !documentPreview) {
+            console.error('Upload card or document preview container not found');
+            return;
+        }
+        
+        // Hide upload card and show document preview
+        uploadCard.style.display = 'none';
+        documentPreview.style.display = 'flex';
+        
+        // Update document header info
+        const documentName = documentPreview.querySelector('.document-name');
+        const documentSize = documentPreview.querySelector('.document-size');
+        
+        if (documentName) documentName.textContent = file.name;
+        if (documentSize) documentSize.textContent = this.formatFileSize(file.size);
+        
+        // Add event listeners for header buttons
+        const uploadBtn = documentPreview.querySelector('.upload-btn');
+        const removeBtn = documentPreview.querySelector('.remove-file-btn');
+        
+        if (uploadBtn) {
+            // Remove any existing event listeners to prevent multiple firing
+            uploadBtn.replaceWith(uploadBtn.cloneNode(true));
+            const newUploadBtn = documentPreview.querySelector('.upload-btn');
+            newUploadBtn.addEventListener('click', (e) => this.handleUpload(e));
+        }
+        if (removeBtn) {
+            // Remove any existing event listeners
+            removeBtn.replaceWith(removeBtn.cloneNode(true));
+            const newRemoveBtn = documentPreview.querySelector('.remove-file-btn');
+            newRemoveBtn.addEventListener('click', (e) => this.handleRemoveFile(e));
+        }
+        
+        // Render the document content
+        this.renderDocumentContent(file);
+        
+        console.log('Document preview updated successfully');
+    }
+
+    renderDocumentContent(file) {
+        console.log('Rendering document content for:', file.name, 'Type:', file.type);
+        
+        const documentContent = document.querySelector('.document-content');
+        if (!documentContent) {
+            console.error('Document content container not found');
+            return;
+        }
+        
+        // Clear existing content
+        documentContent.innerHTML = '<div class="loading-preview">Loading document...</div>';
+        
+        if (file.type === 'application/pdf') {
+            this.renderPDFWithCanvas(documentContent, file);
+        } else if (file.type.startsWith('image/')) {
+            this.renderImageContent(documentContent, file);
+        } else {
+            documentContent.innerHTML = '<div class="unsupported-file">Preview not available for this file type</div>';
+        }
+    }
+
+    renderPDFWithCanvas(container, file) {
+        console.log('Rendering PDF with Canvas');
+        
+        // Create file URL for PDF.js
+        const fileURL = URL.createObjectURL(file);
+        
+        // Load PDF.js library if not already loaded
+        if (typeof pdfjsLib === 'undefined') {
+            // Load PDF.js from CDN
+            const script = document.createElement('script');
+            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+            script.onload = () => {
+                pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+                this.loadAndRenderPDF(fileURL, container);
+            };
+            script.onerror = () => {
+                console.error('Failed to load PDF.js');
+                container.innerHTML = '<div class="pdf-error">Failed to load PDF viewer</div>';
+            };
+            document.head.appendChild(script);
+        } else {
+            this.loadAndRenderPDF(fileURL, container);
+        }
+    }
+
+    async loadAndRenderPDF(fileURL, container) {
+        try {
+            console.log('Loading PDF...');
+            const pdf = await pdfjsLib.getDocument(fileURL).promise;
+            console.log(`PDF loaded. Number of pages: ${pdf.numPages}`);
+
+            // Clear loading message
+            container.innerHTML = '';
+
+            // Create canvas container for all pages
+            const pagesContainer = document.createElement('div');
+            pagesContainer.className = 'pdf-pages-container';
+            container.appendChild(pagesContainer);
+
+            // Render all pages
+            for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+                await this.renderPDFPage(pdf, pageNum, pagesContainer);
+            }
+
+            // Clean up the object URL
+            URL.revokeObjectURL(fileURL);
+            
+        } catch (error) {
+            console.error('Error loading PDF:', error);
+            container.innerHTML = `
+                <div class="pdf-error">
+                    <p>Error loading PDF: ${error.message}</p>
+                </div>
+            `;
+        }
+    }
+
+    async renderPDFPage(pdf, pageNum, container) {
+        try {
+            const page = await pdf.getPage(pageNum);
+            
+            // Create canvas for this page
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            // Get device pixel ratio for high-DPI displays
+            const devicePixelRatio = window.devicePixelRatio || 1;
+            
+            // Calculate scale for full width display with minimal padding
+            const containerWidth = container.clientWidth || 600;
+            const viewport = page.getViewport({ scale: 1 });
+            
+            // Scale to fill container width with just 20px total padding (10px each side)
+            const displayScale = Math.min((containerWidth - 20) / viewport.width, 3); 
+            // Render at much higher quality (3x the display scale) for crisp detail
+            const renderScale = displayScale * 3 * devicePixelRatio; 
+            
+            const scaledViewport = page.getViewport({ scale: renderScale });
+
+            // Set canvas dimensions (high resolution)
+            canvas.width = scaledViewport.width;
+            canvas.height = scaledViewport.height;
+            
+            // Set display dimensions (scaled down for smaller, crisp display)
+            const displayWidth = (viewport.width * displayScale);
+            const displayHeight = (viewport.height * displayScale);
+            
+            canvas.style.width = displayWidth + 'px';
+            canvas.style.height = displayHeight + 'px';
+            canvas.style.maxWidth = '100%';
+            canvas.style.display = 'block';
+            canvas.style.border = '1px solid #e2e8f0';
+            canvas.style.borderRadius = '8px';
+            canvas.className = 'pdf-page';
+            
+            // Improve canvas rendering quality
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+            // Additional quality settings for crisp text
+            if (ctx.textRenderingOptimization) {
+                ctx.textRenderingOptimization = 'optimizeQuality';
+            }
+            
+            // Add canvas to container
+            container.appendChild(canvas);
+
+            // Render page
+            const renderContext = {
+                canvasContext: ctx,
+                viewport: scaledViewport
+            };
+            
+            await page.render(renderContext).promise;
+            console.log(`Page ${pageNum} rendered successfully`);
+            
+        } catch (error) {
+            console.error(`Error rendering page ${pageNum}:`, error);
+        }
+    }
+
+    renderImageContent(container, file) {
+        console.log('Rendering image content');
+        
+        const fileURL = URL.createObjectURL(file);
+        
+        // Clear loading message
+        container.innerHTML = '';
+        
+        const img = document.createElement('img');
+        img.src = fileURL;
+        img.style.width = '100%';
+        img.style.height = 'auto';
+        img.style.display = 'block';
+        img.style.borderRadius = '8px';
+        img.style.border = '1px solid #e2e8f0';
+        img.className = 'document-image';
+        
+        img.onload = () => {
+            URL.revokeObjectURL(fileURL);
+            console.log('Image loaded successfully');
+        };
+        
+        img.onerror = () => {
+            console.error('Error loading image');
+            container.innerHTML = `
+                <div class="image-error">
+                    <p>Error loading image</p>
+                </div>
+            `;
+            URL.revokeObjectURL(fileURL);
+        };
+        
+        container.appendChild(img);
+    }
+
+    createDocumentPreviewContainer() {
+        const uploadPanel = document.querySelector('.extractor-upload-panel');
+        
+        const previewContainer = document.createElement('div');
+        previewContainer.className = 'document-preview';
+        previewContainer.innerHTML = `
+            <div class="dashboard-card preview-card">
+                <div class="preview-header">
+                    <div class="preview-title">Document Preview</div>
+                    <button class="preview-toggle-btn" title="Toggle Preview">
+                        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M6 9l6 0"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="preview-content">
+                    <!-- Document content will be rendered here -->
+                </div>
+            </div>
+        `;
+        
+        // Insert after upload card
+        uploadPanel.appendChild(previewContainer);
+        
+        // Add toggle functionality
+        const toggleBtn = previewContainer.querySelector('.preview-toggle-btn');
+        const previewContent = previewContainer.querySelector('.preview-content');
+        
+        toggleBtn.addEventListener('click', () => {
+            const isCollapsed = previewContent.style.display === 'none';
+            previewContent.style.display = isCollapsed ? 'block' : 'none';
+            toggleBtn.innerHTML = isCollapsed ? 
+                '<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 0"/></svg>' :
+                '<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 6l-6 6-6-6"/></svg>';
+        });
+        
+        return previewContainer;
+    }
+
+    renderPDFContent(container, fileURL, fileName) {
+        console.log('Rendering PDF content');
+        
+        container.innerHTML = `
+            <div class="pdf-viewer">
+                <div class="pdf-controls">
+                    <button class="pdf-control-btn" id="pdf-prev">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M15 18l-6-6 6-6"/>
+                        </svg>
+                        Previous
+                    </button>
+                    <span class="pdf-page-info">
+                        Page <span id="pdf-current-page">1</span> of <span id="pdf-total-pages">-</span>
+                    </span>
+                    <button class="pdf-control-btn" id="pdf-next">
+                        Next
+                        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M9 18l6-6-6-6"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="pdf-container">
+                    <embed src="${fileURL}" type="application/pdf" width="100%" height="600px">
+                    <div class="pdf-fallback">
+                        <p>Your browser doesn't support PDF preview.</p>
+                        <a href="${fileURL}" target="_blank" class="dashboard-btn dashboard-btn-outline">
+                            Open PDF in new tab
+                        </a>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    handleRemoveFile(e) {
+        e.preventDefault();
+        
+        // Clear the selected file
+        this.selectedFile = null;
+        
+        // Reset the upload display
+        this.resetUploadDisplay();
+        
+        // Clear document content
+        const documentContent = document.querySelector('.document-content');
+        if (documentContent) {
+            documentContent.innerHTML = '';
+        }
+        
+        // Hide document preview container
+        const documentPreview = document.querySelector('.document-preview-container');
+        if (documentPreview) {
+            documentPreview.style.display = 'none';
+        }
+        
+        // Show upload card
+        const uploadCard = document.querySelector('.upload-card');
+        if (uploadCard) {
+            uploadCard.style.display = 'block';
+        }
+    }
+
+    resetUploadDisplay() {
+        const uploadCard = document.querySelector('.upload-card');
+        const cardBody = uploadCard.querySelector('.card-body');
+        
+        // Reset to original upload UI
+        cardBody.innerHTML = `
+            <div class="upload-icon">
+                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M16 8l-4-4m0 0L8 8m4-4v12"/>
+                </svg>
+            </div>
+            <div class="dashboard-card-title">Upload Document</div>
+            <div class="dashboard-card-text">Drag and drop your file here</div>
+            <button class="dashboard-btn dashboard-btn-primary upload-btn">Select File</button>
+            <div class="dashboard-card-text" style="font-size:0.98rem;color:#888;margin-bottom:0;">PDF, PNG, JPG up to 10MB</div>
+        `;
+        
+        // Re-add event listener for the upload button
+        const uploadBtn = cardBody.querySelector('.upload-btn');
+        uploadBtn.addEventListener('click', (e) => this.handleUpload(e));
+        
+        // Re-setup drag and drop
+        this.setupDragAndDrop();
+    }
+
+    formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
     handleExtract(e) {
         e.preventDefault();
-        console.log('Extract document functionality would go here');
-        alert('Extract document functionality not implemented yet');
+        
+        // Check if a file is selected
+        if (!this.selectedFile) {
+            alert('Please select a file first.');
+            return;
+        }
+
+        // Get the current schema configuration
+        const schemaConfig = this.getCurrentSchemaConfig();
+        
+        // Show loading state
+        this.showExtractionLoading();
+        
+        // Create FormData for file upload
+        const formData = new FormData();
+        formData.append('file', this.selectedFile);
+        formData.append('schema', JSON.stringify(schemaConfig));
+        
+        // Send extraction request
+        fetch('/api/extract', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            this.hideExtractionLoading();
+            if (data.success) {
+                this.renderExtractionResults(data.results);
+            } else {
+                alert('Extraction failed: ' + (data.error || 'Unknown error'));
+            }
+        })
+        .catch(error => {
+            this.hideExtractionLoading();
+            console.error('Extraction error:', error);
+            alert('Extraction failed. Please try again.');
+        });
+    }
+
+    getCurrentSchemaConfig() {
+        const fields = [];
+        
+        // Get all field rows
+        document.querySelectorAll('.extractor-field-row').forEach((fieldRow, index) => {
+            const fieldName = fieldRow.querySelector('.field-name').textContent.trim();
+            const fieldType = fieldRow.querySelector('.field-type-badge').textContent.trim();
+            const fieldDesc = fieldRow.querySelector('.field-description').textContent.trim();
+            
+            const field = {
+                name: fieldName,
+                type: fieldType,
+                description: fieldDesc
+            };
+            
+            // Handle table fields with subfields
+            if (fieldType === 'table') {
+                const subfields = [];
+                fieldRow.querySelectorAll('.subfield-wrapper').forEach(subfieldWrapper => {
+                    const subfieldName = subfieldWrapper.querySelector('.subfield-name').textContent.trim();
+                    const subfieldType = subfieldWrapper.querySelector('.subfield-type').textContent.trim();
+                    const subfieldDesc = subfieldWrapper.querySelector('.subfield-description').textContent.trim();
+                    
+                    subfields.push({
+                        name: subfieldName,
+                        type: subfieldType,
+                        description: subfieldDesc
+                    });
+                });
+                field.subfields = subfields;
+            }
+            
+            fields.push(field);
+        });
+        
+        return { fields };
+    }
+
+    showExtractionLoading() {
+        const extractBtn = document.querySelector('.extractor-bottom-bar .dashboard-btn-primary');
+        extractBtn.disabled = true;
+        extractBtn.innerHTML = `
+            <svg class="animate-spin" width="16" height="16" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Processing...
+        `;
+    }
+
+    hideExtractionLoading() {
+        const extractBtn = document.querySelector('.extractor-bottom-bar .dashboard-btn-primary');
+        extractBtn.disabled = false;
+        extractBtn.innerHTML = 'Extract Document';
+    }
+
+    renderExtractionResults(results) {
+        // Create results panel
+        const resultsPanel = this.createResultsPanel(results);
+        
+        // Insert results panel after the schema panel
+        const schemaPanel = document.querySelector('.extractor-schema-panel');
+        schemaPanel.parentNode.insertBefore(resultsPanel, schemaPanel.nextSibling);
+        
+        // Scroll to results
+        resultsPanel.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    createResultsPanel(results) {
+        const panel = document.createElement('div');
+        panel.className = 'extractor-results-panel';
+        panel.innerHTML = `
+            <div class="dashboard-card extractor-results-card">
+                <div class="dashboard-title results-title">
+                    Extraction Results
+                    <button class="dashboard-btn dashboard-btn-outline download-btn">Download JSON</button>
+                </div>
+                <div class="results-content">
+                    ${this.renderResultsContent(results)}
+                </div>
+            </div>
+        `;
+        
+        // Add download functionality
+        const downloadBtn = panel.querySelector('.download-btn');
+        downloadBtn.addEventListener('click', () => this.downloadResults(results));
+        
+        return panel;
+    }
+
+    renderResultsContent(results) {
+        let html = '';
+        
+        Object.entries(results).forEach(([fieldName, value]) => {
+            html += `
+                <div class="result-field">
+                    <div class="result-field-header">
+                        <strong>${fieldName}:</strong>
+                    </div>
+                    <div class="result-field-value">
+                        ${this.formatResultValue(value)}
+                    </div>
+                </div>
+            `;
+        });
+        
+        return html;
+    }
+
+    formatResultValue(value) {
+        if (Array.isArray(value)) {
+            // Handle table data
+            if (value.length === 0) return '<em>No data</em>';
+            
+            let tableHtml = '<table class="results-table"><thead><tr>';
+            
+            // Create headers from first row keys
+            const headers = Object.keys(value[0] || {});
+            headers.forEach(header => {
+                tableHtml += `<th>${header}</th>`;
+            });
+            tableHtml += '</tr></thead><tbody>';
+            
+            // Add data rows
+            value.forEach(row => {
+                tableHtml += '<tr>';
+                headers.forEach(header => {
+                    tableHtml += `<td>${row[header] || ''}</td>`;
+                });
+                tableHtml += '</tr>';
+            });
+            
+            tableHtml += '</tbody></table>';
+            return tableHtml;
+        } else if (value === null || value === undefined) {
+            return '<em>Not found</em>';
+        } else {
+            return String(value);
+        }
+    }
+
+    downloadResults(results) {
+        const dataStr = JSON.stringify(results, null, 2);
+        const dataBlob = new Blob([dataStr], {type: 'application/json'});
+        
+        const url = URL.createObjectURL(dataBlob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `extraction_results_${new Date().toISOString().slice(0, 10)}.json`;
+        link.click();
+        
+        URL.revokeObjectURL(url);
     }
 
     collapseAllFields() {

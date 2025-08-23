@@ -12,22 +12,39 @@
 {% block content %}
 <div class="pcoded-main-container">
     <div class="extractor-main-row">
-        <!-- Upload Panel -->
-    <div class="extractor-upload-panel">
-        <div class="dashboard-card upload-card">
-            <div class="card-body d-flex flex-column justify-content-between align-items-center">
-                <div class="upload-icon">
-                    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M16 8l-4-4m0 0L8 8m4-4v12"/>
-                    </svg>
+        <!-- Document Panel -->
+        <div class="extractor-document-panel">
+            <div class="dashboard-card upload-card">
+                <div class="card-body d-flex flex-column justify-content-between align-items-center">
+                    <div class="upload-icon">
+                        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M16 8l-4-4m0 0L8 8m4-4v12"/>
+                        </svg>
+                    </div>
+                    <div class="dashboard-card-title">Upload Document</div>
+                    <div class="dashboard-card-text">Drag and drop your file here</div>
+                    <button class="dashboard-btn dashboard-btn-primary upload-btn">Select File</button>
+                    <div class="dashboard-card-text" style="font-size:0.98rem;color:#888;margin-bottom:0;">PDF, PNG, JPG up to 10MB</div>
                 </div>
-                <div class="dashboard-card-title">Upload Document</div>
-                <div class="dashboard-card-text">Drag and drop your file here</div>
-                <button class="dashboard-btn dashboard-btn-primary upload-btn">Select File</button>
-                <div class="dashboard-card-text" style="font-size:0.98rem;color:#888;margin-bottom:0;">PDF, PNG, JPG up to 10MB</div>
+            </div>
+            
+            <!-- Document Preview Container (Hidden by default) -->
+            <div class="document-preview-container" style="display: none;">
+                <div class="document-header">
+                    <div class="document-info">
+                        <span class="document-name"></span>
+                        <span class="document-size"></span>
+                    </div>
+                    <div class="document-actions">
+                        <button class="dashboard-btn dashboard-btn-primary upload-btn">Choose Another File</button>
+                        <button class="dashboard-btn dashboard-btn-outline remove-file-btn">Remove</button>
+                    </div>
+                </div>
+                <div class="document-content">
+                    <!-- PDF or Image content will be inserted here -->
+                </div>
             </div>
         </div>
-    </div>
 
     <!-- Schema Panel -->
     <div class="extractor-schema-panel">

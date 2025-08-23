@@ -2820,7 +2820,7 @@ p.text-muted {
   float: unset;
   right: 0;
   margin-left: 264px;
-  min-height: 100vh;
+  /* min-height: 1080px; */
   -webkit-transition: all 0.3s ease-in-out;
   transition: all 0.3s ease-in-out;
 }
@@ -4839,7 +4839,7 @@ p.text-muted {
 .pcoded-navbar.menupos-static .navbar-wrapper,
 .pcoded-navbar.menupos-static .scroll-div.navbar-content {
   height: auto;
-  min-height: 100vh;
+    /* min-height: 1080px; */
 }
 
 /* ====== [ menu static end ] ======== */

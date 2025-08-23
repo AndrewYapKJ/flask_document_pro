@@ -1,0 +1,563 @@
+/* Extractor Page Specific Styles */
+
+/* Override framework container for custom layout - Complete reset */
+.pcoded-main-container {
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+.pcoded-main-container .pcoded-content {
+    padding: 0 !important;
+    position: static !important;
+    display: block !important;
+}
+
+.pcoded-main-container .pcoded-inner-content {
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+/* Handle sidebar collapse manually since we override the container */
+.pcoded-navbar.navbar-collapsed ~ .pcoded-main-container {
+    margin-left: 80px !important;
+}
+
+/* Normal sidebar state */
+.pcoded-main-container {
+    margin-left: 264px !important;
+}
+
+/* Mobile override */
+@media (max-width: 991px) {
+    .pcoded-main-container {
+        margin-left: 0 !important;
+    }
+}
+
+/* Main Layout */
+.add-subfield-btn {
+    display: none !important; /* Hidden in display mode */
+}
+.extractor-main-row {
+    position: relative;
+    height: calc(100vh - 120px);
+    overflow: hidden;
+    display: flex;
+    gap: 0;
+    align-items: stretch;
+}
+
+/* Upload Panel */
+.extractor-upload-panel {
+    flex: 0 0 45%;
+    max-width: 45%;
+    border-right: 1px solid #e0e0e0;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.upload-card {
+    width: 340px;
+    margin: auto;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+    border-radius: 10px;
+}
+
+.upload-icon {
+    background: #eaf2ff;
+    border-radius: 50%;
+    width: 64px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 18px;
+}
+
+.upload-icon svg {
+    width: 36px;
+    height: 36px;
+    color: #377dff;
+}
+
+/* Enhanced Upload Button */
+.upload-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    border-radius: 12px;
+    color: white;
+    font-weight: 600;
+    font-size: 1rem;
+    padding: 14px 32px;
+    box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    position: relative;
+    overflow: hidden;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.upload-btn:before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s;
+}
+
+.upload-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 25px rgba(102, 126, 234, 0.4);
+    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+}
+
+.upload-btn:hover:before {
+    left: 100%;
+}
+
+.upload-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 6px 15px rgba(102, 126, 234, 0.3);
+}
+
+/* Enhanced Extract Document Button */
+.extractor-bottom-bar .dashboard-btn-primary {
+    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    border: none;
+    border-radius: 50px;
+    color: white;
+    font-weight: 700;
+    font-size: 1.1rem;
+    padding: 16px 40px;
+    box-shadow: 0 10px 30px rgba(17, 153, 142, 0.3);
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    position: relative;
+    overflow: hidden;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    min-width: 200px;
+}
+
+.extractor-bottom-bar .dashboard-btn-primary:before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    transition: left 0.6s;
+}
+
+.extractor-bottom-bar .dashboard-btn-primary:hover {
+    transform: translateY(-3px) scale(1.05);
+    box-shadow: 0 15px 35px rgba(17, 153, 142, 0.4);
+    background: linear-gradient(135deg, #38ef7d 0%, #11998e 100%);
+}
+
+.extractor-bottom-bar .dashboard-btn-primary:hover:before {
+    left: 100%;
+}
+
+.extractor-bottom-bar .dashboard-btn-primary:active {
+    transform: translateY(-1px) scale(1.02);
+    box-shadow: 0 8px 20px rgba(17, 153, 142, 0.3);
+}
+
+/* Enhanced Upload Icon */
+.upload-icon {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 50%;
+    width: 80px;
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 24px;
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+    transition: all 0.3s ease;
+}
+
+.upload-icon:hover {
+    transform: translateY(-2px) rotate(5deg);
+    box-shadow: 0 12px 30px rgba(102, 126, 234, 0.4);
+}
+
+.upload-icon svg {
+    width: 40px;
+    height: 40px;
+    color: white;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+}
+.extractor-schema-panel {
+    flex: 0 0 55%;
+    max-width: 55%;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    overflow-y: auto;
+    height: 100%;
+    padding: 0;
+}
+
+.extractor-schema-card {
+    box-shadow: none;
+    border-radius: 0;
+    padding: 32px 32px 0 32px;
+    box-shadow: 0 4px 24px rgba(55,125,255,0.10);
+    color: #222;
+}
+
+.schema-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #222;
+    margin-bottom: 18px;
+}
+
+.schema-subtitle {
+    font-size: 1rem;
+    color: #888;
+    margin-bottom: 20px;
+}
+
+/* Field Rows */
+.extractor-field-row {
+    border-radius: 8px;
+    margin-bottom: 14px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    padding: 18px 22px;
+    position: relative;
+    transition: all 0.2s ease;
+}
+
+.extractor-field-row.expanded {
+    box-shadow: 0 4px 16px rgba(55,125,255,0.15);
+}
+
+.field-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.field-name {
+    font-weight: 600;
+    color: #4f8cff;
+}
+
+.field-type-badge {
+    margin-left: 8px;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.field-type-badge.text {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.field-type-badge.number {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.field-type-badge.date {
+    background: #f3e8ff;
+    color: #7c3aed;
+}
+
+.field-type-badge.table {
+    background: #e0e7ff;
+    color: #4338ca;
+}
+
+.field-description {
+    color: #888;
+    font-size: 0.95rem;
+    margin-top: 6px;
+}
+
+.field-actions {
+    display: flex;
+    gap: 4px;
+}
+
+/* Field Editor */
+.field-editor {
+    display: none;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 16px;
+    padding: 16px;
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+}
+
+.extractor-field-row.expanded .field-editor {
+    display: flex;
+}
+
+.editor-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    margin-top: 16px;
+}
+
+/* Table Fields */
+.table-field {
+    border-left: 3px solid #4338ca;
+}
+
+.table-subfields {
+    background: #f8fafc;
+    border-radius: 8px;
+    padding: 12px;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid #e5e7eb;
+}
+
+.table-columns-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #6b7280;
+    margin-bottom: 12px;
+}
+
+.subfields-container {
+    padding-left: 16px;
+}
+
+.subfield-wrapper {
+    margin-bottom: 12px;
+    transition: all 0.2s ease;
+}
+
+.subfield-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.subfield-row:hover {
+    background: #f1f5f9;
+}
+
+.subfield-wrapper:hover .subfield-row {
+    background: #f1f5f9;
+}
+
+.subfield-name {
+    font-weight: 500;
+    color: #374151;
+}
+
+.subfield-type {
+    margin-left: 8px;
+    padding: 2px 6px;
+    border-radius: 8px;
+    font-size: 0.7rem;
+    font-weight: 500;
+}
+
+.subfield-type.text {
+    background: #dbeafe;
+    color: #1e40af !important;
+}
+
+.subfield-type.number {
+    background: #dcfce7;
+    color: #15803d !important;
+}
+
+.subfield-type.date {
+    background: #f3e8ff;
+    color: #7c3aed !important;
+}
+
+.subfield-description {
+    color: #6b7280;
+    font-size: 0.85rem;
+    margin-top: 4px;
+    padding-left: 4px;
+    font-style: italic;
+    line-height: 1.3;
+}
+
+/* Add Buttons */
+.add-subfield-btn {
+    display: none !important; /* Hidden in display mode */
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    background: #f3f4f6;
+    border: 1px dashed #d1d5db;
+    border-radius: 6px;
+    color: #6b7280;
+    font-size: 0.85rem;
+    width: 100%;
+    margin-top: 8px;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+/* Show in edit mode */
+.extractor-field-row.expanded .add-subfield-btn {
+    display: none !important;
+}
+
+.add-subfield-btn:hover {
+    background: #e2e8f0;
+    border-color: #94a3b8;
+}
+
+.extractor-add-field-btn {
+    width: 100%;
+    margin: 18px 0 0 0;
+    border-radius: 8px;
+    font-size: 1rem;
+    padding: 12px 0;
+    color: #377dff;
+    border: 2px dashed #e0e0e0;
+    background: #f7f8fa;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.extractor-add-field-btn:hover {
+    background: #eaf2ff;
+    color: #2563eb;
+    border-color: #4f8cff;
+}
+
+/* Table Configuration */
+.table-config {
+    margin-top: 16px;
+    padding: 16px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+}
+
+.table-config-title {
+    font-weight: 600;
+    color: #4f8cff;
+    margin-bottom: 12px;
+    display: block;
+}
+
+.table-column-row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 12px;
+    align-items: start;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 12px;
+}
+
+.column-input-group {
+    flex: 1;
+}
+
+.column-type-group {
+    flex: 0 0 120px;
+}
+
+.column-actions {
+    flex: 0 0 auto;
+    padding-top: 24px;
+}
+
+.column-label {
+    font-size: 0.85rem;
+    color: #6b7280;
+    margin-bottom: 4px;
+}
+
+.column-name-input,
+.column-description-input {
+    font-size: 0.9rem;
+}
+
+.column-description-input {
+    margin-top: 8px;
+}
+
+/* Action Buttons */
+.action-btn {
+    background: none;
+    border: none;
+    color: #4f8cff;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    margin: 0 4px;
+}
+
+.action-btn:hover {
+    background: #eaf2ff;
+    color: #2563eb;
+}
+
+.action-btn.delete:hover {
+    background: #fef2f2;
+    color: #dc2626;
+}
+
+.delete-subfield-btn {
+    opacity: 0.6;
+}
+
+/* Bottom Bar */
+.extractor-bottom-bar {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 24px 32px;
+    background: transparent;
+}
+
+/* Responsive Design */
+@media (max-width: 992px) {
+    .extractor-main-row {
+        margin-left: 0 !important;
+        flex-direction: column;
+        height: auto;
+        min-height: calc(100vh - 120px);
+    }
+    
+    .extractor-upload-panel {
+        border-right: none;
+        border-bottom: 1px solid #e0e0e0;
+        height: auto;
+        min-height: 300px;
+        flex: none;
+        max-width: 100%;
+    }
+    
+    .extractor-schema-panel {
+        height: auto;
+        overflow-y: visible;
+        flex: 1;
+        max-width: 100%;
+    }
+}

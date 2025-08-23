@@ -5,1275 +5,187 @@
 {% block stylesheets %}
 <link rel="stylesheet" href="/static/assets/css/style.css">
 <link rel="stylesheet" href="/static/assets/css/dark.css">
-<style>
-    body.dark .field-editor input,
-    body.dark .field-editor select,
-    body.dark .field-editor textarea {
-        background: #2d3748;
-        border-color: #4a5568;
-        color: #f7fafc;
-    }
-    
-    /* Dark mode for table elements */
-    body.dark .table-subfields {
-        background: #2d3748 !important;
-        border-color: #4a5568 !important;
-    }
-    
-    body.dark .subfield-row {
-        background: #374151 !important;
-        border-color: #4a5568 !important;
-        color: #f7fafc !important;
-    }
-    
-    body.dark .subfield-row:hover {
-        background: #4a5568 !important;
-    }
-    
-    body.dark .subfield-row span {
-        color: #f7fafc !important;
-    }
-    
-    body.dark .subfield-wrapper:hover .subfield-row {
-        background: #4a5568 !important;
-    }
-    
-    body.dark .subfield-description {
-        color: #d1d5db !important;
-    }
-    .add-subfield-btn {
-     display: none !important;
-    }
-    body.dark .add-subfield-btn {
-       
-        background: #374151 !important;
-        border-color: #4a5568 !important;
-        color: #d1d5db !important;
-    }
-    
-    body.dark .add-subfield-btn:hover {
-        background: #4a5568 !important;
-        border-color: #6b7280 !important;
-    }
-    
-    body.dark .table-config {
-        background: #2d3748 !important;
-        border-color: #4a5568 !important;
-    }
-    
-    body.dark .table-config label {
-        color: #d1d5db !important;
-    }
-    
-    /* Description field styling */
-    .column-description-input {
-        font-size: 0.85rem !important;
-        color: #6b7280 !important;
-    }
-    
-    body.dark .column-description-input {
-        background: #374151 !important;
-        border-color: #4a5568 !important;
-        color: #d1d5db !important;
-    }
-    
-    .subfield-description {
-        font-style: italic;
-        line-height: 1.3;
-    }
-    
-    body.dark .subfield-description {
-        color: #9ca3af !important;
-    }
-    
-    body.dark .table-column-row {
-        background: #374151 !important;
-        border-color: #4a5568 !important;
-    }
-    
-    /* Dark mode for subfield wrappers and descriptions */
-    body.dark .subfield-wrapper {
-        color: #f7fafc !important;
-    }
-    
-    body.dark .subfield-description {
-        color: #d1d5db !important;
-    }
-    
-    body.dark .subfield-row span {
-        color: #f7fafc !important;
-    }
-    
-    body.dark .table-column-row label {
-        color: #d1d5db !important;
-    }
-    
-    body.dark .table-column-row input,
-    body.dark .table-column-row select {
-        background: #2d3748 !important;
-        border-color: #4a5568 !important;
-        color: #f7fafc !important;
-    }t" href="/static/assets/css/dark.css">
-<style>
-    /* Main container that responds to sidebar collapse */
-    .extractor-main-row {
-        transition: margin-left 0.3s ease;
-        margin-left: 240px;
-        position: relative;
-        height: calc(100vh - 120px);
-        overflow: hidden;
-    }
-    
-    /* When navbar is collapsed (default desktop state) */
-    .navbar-collapsed .extractor-main-row {
-        margin-left: 0;
-    }
-    
-    .extractor-upload-panel {
-        border-right: 1px solid #e0e0e0;
-        height: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        overflow: hidden;
-    }
-    
-    .extractor-schema-panel {
-        height: 100%;
-        overflow-y: auto;
-        overflow-x: hidden;
-    }
-        display: flex;
-        flex-direction: column;
-        align-items: stretch;
-        overflow-y: auto;
-        padding: 0;
-    }
-    
-    .extractor-schema-card {
-        box-shadow: 0 4px 24px rgba(55,125,255,0.10);
-        border-radius: 12px;
-       
-        color: #222;
-        padding: 32px 32px 0 32px;
-    }
-    
-    .extractor-schema-card .dashboard-title {
-        color: #222 !important;
-        font-weight: 700;
-    }
-    
-    .extractor-schema-card div[style*="color:#888"] {
-        color: #555 !important;
-    }
-    
-    .extractor-field-row {
-    
-        border-radius: 8px;
-        margin-bottom: 14px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-        padding: 18px 22px;
-        position: relative;
-        transition: all 0.2s ease;
-    }
-    
-    .extractor-field-row.expanded {
-        
-        box-shadow: 0 4px 16px rgba(55,125,255,0.15);
-    }
-    
-    .field-editor {
-        display: none;
-        flex-direction: column;
-        gap: 12px;
-        margin-top: 16px;
-        padding: 16px;
-       
-        border-radius: 8px;
-        border: 1px solid #e0e0e0;
-    }
-    
-    .extractor-field-row.expanded .field-editor {
-        display: flex;
-    }
-    
-    /* Table field styles */
-    .table-field {
-        border-left: 3px solid #4338ca;
-    }
-    
-    .table-subfields {
-        background: #f8fafc;
-        border-radius: 8px;
-        padding: 12px;
-    }
-    
-    .subfield-row:hover {
-        background: #f1f5f9 !important;
-    }
-    
-    .subfield-wrapper {
-        transition: all 0.2s ease;
-    }
-    
-    .subfield-wrapper:hover .subfield-row {
-        background: #f1f5f9 !important;
-    }
-    
-    .add-subfield-btn:hover {
-        background: #e2e8f0 !important;
-        border-color: #94a3b8;
-    }
-    
-    .table-config {
-        border: 2px dashed #e2e8f0 !important;
-    }
-    
-    .table-column-row {
-        background: #ffffff;
-        border: 1px solid #e2e8f0;
-        border-radius: 6px;
-        padding: 12px;
-    }
-    
-    /* Dark mode styles */
-    body.dark .extractor-upload-panel {
-        background: #23262f;
-        border-right: 1px solid #334756;
-    }
-    
-    body.dark .extractor-schema-panel {
-        background: #181a20;
-    }
-    
-    body.dark .extractor-schema-card {
-        background: #23262f;
-        color: #e2e2e2;
-        box-shadow: 0 4px 24px rgba(55,125,255,0.18);
-    }
-    
-    body.dark .dashboard-title {
-        color: #fff !important;
-    }
-    
-    body.dark .extractor-schema-card .dashboard-title {
-        color: #fff !important;
-    }
-    
-    body.dark .extractor-schema-card div[style*="color:#888"] {
-        color: #d0d0d0 !important;
-    }
-    
-    /* Additional dark mode text fixes */
-    body.dark .extractor-schema-card .dashboard-title {
-        color: #fff !important;
-    }
-    
-    body.dark .extractor-schema-card div[style*="margin-bottom:10px"] {
-        color: #d0d0d0 !important;
-    }
-    
-    body.dark .extractor-field-row {
-        background: #23262f;
-        color: #e2e2e2;
-        box-shadow: 0 2px 12px rgba(55,125,255,0.10);
-    }
-    
-    body.dark .extractor-field-row.expanded {
-        background: #334756;
-       
-    }
-    
-    body.dark .field-editor {
-        background: #334756;
-        border-color: #4a5568;
-      
-    }
-    
-    body.dark .field-editor input,
-    body.dark .field-editor select,
-    body.dark .field-editor textarea {
-        background: #2d3748;
-        border-color: #4a5568;
-        color: #fff;
-    }
-    
-    /* Button styles */
-    .dashboard-btn-primary {
-        background: linear-gradient(90deg,#377dff 0%,#4f8cff 100%);
-        color: #fff;
-        border: none;
-        font-weight: 600;
-        box-shadow: 0 2px 8px rgba(55,125,255,0.10);
-        transition: all 0.2s ease;
-        border-radius: 8px;
-        font-size: 1.1rem;
-        padding: 12px 40px;
-    }
-    
-    .dashboard-btn-primary:hover {
-        background: linear-gradient(90deg,#2563eb 0%,#377dff 100%);
-        transform: translateY(-1px);
-    }
-    
-    .dashboard-btn-outline {
-        background: #f7f8fa;
-        color: #377dff;
-        border: 2px solid #377dff;
-        font-weight: 600;
-        transition: all 0.2s ease;
-        border-radius: 8px;
-        font-size: 1rem;
-        padding: 12px 24px;
-    }
-    
-    .dashboard-btn-outline:hover {
-        background: #eaf2ff;
-        color: #2563eb;
-        border-color: #4f8cff;
-    }
-    
-    .action-btn {
-        background: none;
-        border: none;
-        color: #4f8cff;
-        cursor: pointer;
-        padding: 8px;
-        border-radius: 6px;
-        transition: all 0.2s ease;
-        margin: 0 4px;
-    }
-    
-    .action-btn:hover {
-        background: #eaf2ff;
-        color: #2563eb;
-    }
-    
-    .action-btn.delete:hover {
-        background: #fef2f2;
-        color: #dc2626;
-    }
-    
-    /* Dark mode button styles */
-    body.dark .dashboard-btn-primary {
-        background: linear-gradient(90deg,#4f8cff 0%,#377dff 100%);
-    }
-    
-    body.dark .dashboard-btn-outline {
-        background: #23262f;
-        color: #4f8cff;
-        border-color: #4f8cff;
-    }
-    
-    body.dark .dashboard-btn-outline:hover {
-        background: #334756;
-        color: #fff;
-    }
-    
-    body.dark .action-btn {
-        color: #4f8cff;
-    }
-    
-    body.dark .action-btn:hover {
-        background: #334756;
-        color: #fff;
-    }
-    
-    body.dark .action-btn.delete:hover {
-        background: #450a0a;
-        color: #ff5252;
-    }
-    
-    .extractor-add-field-btn {
-        width: 100%;
-        margin: 18px 0 0 0;
-        border-radius: 8px;
-        font-size: 1rem;
-        padding: 12px 0;
-        color: #377dff;
-        border: 2px dashed #e0e0e0;
-        background: #f7f8fa;
-        font-weight: 600;
-        transition: all 0.2s ease;
-        cursor: pointer;
-    }
-    
-    .extractor-add-field-btn:hover {
-        background: #eaf2ff;
-        color: #2563eb;
-        border-color: #4f8cff;
-    }
-    
-    body.dark .extractor-add-field-btn {
-        background: #23262f;
-        color: #4f8cff;
-        border-color: #4f8cff;
-    }
-    
-    body.dark .extractor-add-field-btn:hover {
-        background: #334756;
-        color: #fff;
-    }
-    
-    .extractor-bottom-bar {
-        display: flex;
-        align-items: center;
-        justify-content: flex-end;
-        padding: 24px 32px;
-        background: transparent;
-    }
-    
-    /* Form controls in dark mode */
-    body.dark .form-control {
-        background: #2d3748;
-        border-color: #4a5568;
-        color: #fff;
-    }
-    
-    body.dark .form-control:focus {
-        background: #2d3748;
-        border-color: #4f8cff;
-        color: #fff;
-        box-shadow: 0 0 0 0.2rem rgba(79, 140, 255, 0.25);
-    }
-    
-    /* Mobile responsiveness */
-    @media (max-width: 992px) {
-        .extractor-main-row {
-            margin-left: 0 !important;
-            flex-direction: column;
-            height: auto;
-            min-height: calc(100vh - 120px);
-        }
-        
-        .extractor-upload-panel {
-            border-right: none;
-            border-bottom: 1px solid #e0e0e0;
-            height: auto;
-            min-height: 300px;
-            flex: none;
-        }
-        
-        .extractor-schema-panel {
-            height: auto;
-            overflow-y: visible;
-            flex: 1;
-        }
-        
-        body.dark .extractor-upload-panel {
-            border-bottom: 1px solid #334756;
-        }
-    }
-</style>
+<link rel="stylesheet" href="/static/assets/css/extractor.css">
+<link rel="stylesheet" href="/static/assets/css/extractor-dark.css">
 {% endblock stylesheets %}
 
 {% block content %}
-<div class="extractor-main-row" style="display:flex;gap:0;align-items:stretch;height:calc(100vh - 120px);transition:margin-left 0.3s;overflow:hidden;">
-    <div class="extractor-upload-panel" style="flex:0 0 45%;max-width:45%;display:flex;align-items:center;justify-content:center;overflow:hidden;">
-        <div class="dashboard-card" style="width:340px;margin:auto;box-shadow:0 2px 8px rgba(0,0,0,0.03);border-radius:10px;">
+<div class="pcoded-main-container">
+    <div class="extractor-main-row">
+        <!-- Upload Panel -->
+    <div class="extractor-upload-panel">
+        <div class="dashboard-card upload-card">
             <div class="card-body d-flex flex-column justify-content-between align-items-center">
-                <div class="upload-icon" style="background:#eaf2ff;border-radius:50%;width:64px;height:64px;display:flex;align-items:center;justify-content:center;margin-bottom:18px;">
-                    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width:36px;height:36px;color:#377dff;"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M16 8l-4-4m0 0L8 8m4-4v12"/></svg>
+                <div class="upload-icon">
+                    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M16 8l-4-4m0 0L8 8m4-4v12"/>
+                    </svg>
                 </div>
-                <div class="dashboard-card-title" style="margin-bottom:0.2rem;">Upload Document</div>
-                <div class="dashboard-card-text" style="margin-bottom:1rem;">Drag and drop your file here</div>
-                <button class="dashboard-btn dashboard-btn-primary upload-btn" style="margin-bottom:8px;border-radius:8px;font-size:1rem;padding:10px 28px;">Select File</button>
+                <div class="dashboard-card-title">Upload Document</div>
+                <div class="dashboard-card-text">Drag and drop your file here</div>
+                <button class="dashboard-btn dashboard-btn-primary upload-btn">Select File</button>
                 <div class="dashboard-card-text" style="font-size:0.98rem;color:#888;margin-bottom:0;">PDF, PNG, JPG up to 10MB</div>
             </div>
         </div>
     </div>
-    <div class="extractor-schema-panel" style="flex:0 0 55%;max-width:55%;display:flex;flex-direction:column;align-items:stretch;overflow-y:auto;height:100%;padding:0 0 0 0;">
-        <div class="dashboard-card extractor-schema-card" style="box-shadow:none;border-radius:0;padding:32px 32px 0 32px;">
-            <div class="dashboard-title mb-2" style="font-size:1.2rem;font-weight:700;color:#222;margin-bottom:18px;">Schema Definition</div>
-            <div style="font-size:1rem;color:#888;margin-bottom:20px;">Invoice Extraction Fields:</div>
-                {% set fields = [
-                    {'name': 'invoice_number', 'type': 'text', 'desc': 'The invoice or bill number', 'category': 'basic'},
-                    {'name': 'purchase_order_number', 'type': 'text', 'desc': 'The purchase order number of invoice or bill', 'category': 'basic'},
-                    {'name': 'invoice_due_date', 'type': 'date', 'desc': 'The due date of the invoice, formatted as YYYY-MM-DD', 'category': 'basic'},
-                    {'name': 'invoice_date', 'type': 'date', 'desc': 'The date of the invoice, formatted as YYYY-MM-DD', 'category': 'basic'},
-                    {'name': 'invoice_subtotal_amount', 'type': 'number', 'desc': 'The subtotal amount of the invoice', 'category': 'amounts'},
-                    {'name': 'invoice_tax_amount', 'type': 'number', 'desc': 'The tax amount of the invoice', 'category': 'amounts'},
-                    {'name': 'invoice_total_amount', 'type': 'number', 'desc': 'The total amount of the invoice', 'category': 'amounts'},
-                    {'name': 'seller_name', 'type': 'text', 'desc': 'The name of the seller', 'category': 'basic'},
-                    {'name': 'line_items', 'type': 'table', 'desc': 'The items in the invoice', 'category': 'table', 'subfields': [
-                        {'name': 'description', 'type': 'text', 'desc': 'The item description or name'},
-                        {'name': 'quantity', 'type': 'number', 'desc': 'The quantity of the item'},
-                        {'name': 'unit_price', 'type': 'number', 'desc': 'The unit price or rate of the item'},
-                        {'name': 'item_total_amount', 'type': 'number', 'desc': 'The total amount of the item'}
-                    ]}
-                ] %}
-                {% for field in fields %}
-                <div class="extractor-field-row {{ 'table-field' if field.type == 'table' else '' }}" id="field-{{ loop.index }}">
-                    <div style="display:flex;align-items:center;justify-content:space-between;">
-                        <div>
-                            <span style="font-weight:600;color:#4f8cff;">{{ field.name }}</span>
-                            {% if field.type == 'text' %}
-                                <span style="margin-left:8px;padding:4px 8px;border-radius:12px;font-size:0.75rem;background:#dbeafe;color:#1e40af;font-weight:500;">text</span>
-                            {% elif field.type == 'number' %}
-                                <span style="margin-left:8px;padding:4px 8px;border-radius:12px;font-size:0.75rem;background:#dcfce7;color:#15803d;font-weight:500;">number</span>
-                            {% elif field.type == 'date' %}
-                                <span style="margin-left:8px;padding:4px 8px;border-radius:12px;font-size:0.75rem;background:#f3e8ff;color:#7c3aed;font-weight:500;">date</span>
-                            {% elif field.type == 'table' %}
-                                <span style="margin-left:8px;padding:4px 8px;border-radius:12px;font-size:0.75rem;background:#e0e7ff;color:#4338ca;font-weight:500;">table</span>
-                            {% endif %}
-                        </div>
-                        <div>
-                            <button class="action-btn edit-btn" data-idx="{{ loop.index }}" data-action="edit" title="Edit Field">
-                                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M12 20h9"/>
-                                    <path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/>
-                                </svg>
-                            </button>
-                            <button class="action-btn delete delete-btn" data-idx="{{ loop.index }}" data-action="delete" title="Delete Field">
-                                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M3 6h18"/>
-                                    <path d="M8 6v12a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2V6"/>
-                                    <path d="M10 11v6"/>
-                                    <path d="M14 11v6"/>
-                                    <path d="M5 6V4a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v2"/>
-                                </svg>
-                            </button>
-                        </div>
+
+    <!-- Schema Panel -->
+    <div class="extractor-schema-panel">
+        <div class="dashboard-card extractor-schema-card">
+            <div class="dashboard-title schema-title">Schema Definition</div>
+            <div class="schema-subtitle">Invoice Extraction Fields:</div>
+            
+            <!-- Field Definitions -->
+            {% set fields = [
+                {'name': 'invoice_number', 'type': 'text', 'desc': 'The invoice or bill number', 'category': 'basic'},
+                {'name': 'purchase_order_number', 'type': 'text', 'desc': 'The purchase order number of invoice or bill', 'category': 'basic'},
+                {'name': 'invoice_due_date', 'type': 'date', 'desc': 'The due date of the invoice, formatted as YYYY-MM-DD', 'category': 'basic'},
+                {'name': 'invoice_date', 'type': 'date', 'desc': 'The date of the invoice, formatted as YYYY-MM-DD', 'category': 'basic'},
+                {'name': 'invoice_subtotal_amount', 'type': 'number', 'desc': 'The subtotal amount of the invoice', 'category': 'amounts'},
+                {'name': 'invoice_tax_amount', 'type': 'number', 'desc': 'The tax amount of the invoice', 'category': 'amounts'},
+                {'name': 'invoice_total_amount', 'type': 'number', 'desc': 'The total amount of the invoice', 'category': 'amounts'},
+                {'name': 'seller_name', 'type': 'text', 'desc': 'The name of the seller', 'category': 'basic'},
+                {'name': 'line_items', 'type': 'table', 'desc': 'The items in the invoice', 'category': 'table', 'subfields': [
+                    {'name': 'description', 'type': 'text', 'desc': 'The item description or name'},
+                    {'name': 'quantity', 'type': 'number', 'desc': 'The quantity of the item'},
+                    {'name': 'unit_price', 'type': 'number', 'desc': 'The unit price or rate of the item'},
+                    {'name': 'item_total_amount', 'type': 'number', 'desc': 'The total amount of the item'}
+                ]}
+            ] %}
+            
+            <!-- Render Fields -->
+            {% for field in fields %}
+            <div class="extractor-field-row {{ 'table-field' if field.type == 'table' else '' }}" id="field-{{ loop.index }}">
+                <div class="field-header">
+                    <div>
+                        <span class="field-name">{{ field.name }}</span>
+                        <span class="field-type-badge {{ field.type }}">{{ field.type }}</span>
                     </div>
-                    <div style="color:#888;font-size:0.95rem;margin-top:6px;">{{ field.desc }}</div>
-                    
-                    <!-- Table Sub-fields Display -->
-                    {% if field.type == 'table' and field.subfields %}
-                    <div class="table-subfields" style="margin-top:16px;padding-top:16px;border-top:1px solid #e5e7eb;">
-                        <div style="font-size:0.9rem;font-weight:600;color:#6b7280;margin-bottom:12px;">Table Columns:</div>
-                        <div class="subfields-container" style="padding-left:16px;">
-                            {% for subfield in field.subfields %}
-                            <div class="subfield-wrapper" style="margin-bottom:12px;">
-                                <div class="subfield-row" style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;">
-                                    <div>
-                                        <span class="subfield-name" style="font-weight:500;color:#374151;">{{ subfield.name }}</span>
-                                        {% if subfield.type == 'text' %}
-                                            <span class="subfield-type" style="margin-left:8px;padding:2px 6px;border-radius:8px;font-size:0.7rem;background:#dbeafe;color:#1e40af !important;font-weight:500;">text</span>
-                                        {% elif subfield.type == 'number' %}
-                                            <span class="subfield-type" style="margin-left:8px;padding:2px 6px;border-radius:8px;font-size:0.7rem;background:#dcfce7;color:#15803d !important;font-weight:500;">number</span>
-                                        {% elif subfield.type == 'date' %}
-                                            <span class="subfield-type" style="margin-left:8px;padding:2px 6px;border-radius:8px;font-size:0.7rem;background:#f3e8ff;color:#7c3aed !important;font-weight:500;">date</span>
-                                        {% endif %}
-                                    </div>
-                                    <button class="action-btn delete-subfield-btn" data-subfield="{{ subfield.name }}" title="Remove Column" style="opacity:0.6;">
-                                        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                            <path d="M18 6L6 18"/>
-                                            <path d="M6 6l12 12"/>
-                                        </svg>
-                                    </button>
-                                </div>
-                                <div class="subfield-description" style="color:#6b7280;font-size:0.85rem;margin-top:4px;padding-left:4px;">{{ subfield.desc }}</div>
-                            </div>
-                            {% endfor %}
-                            <button class="add-subfield-btn" style="display:flex;align-items:center;gap:6px;padding:8px 12px;background:#f3f4f6;border:1px dashed #d1d5db;border-radius:6px;color:#6b7280;font-size:0.85rem;width:100%;margin-top:8px;">
-                                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M12 5l0 14"/>
-                                    <path d="M5 12l14 0"/>
-                                </svg>
-                                Add Table Column
-                            </button>
-                        </div>
-                    </div>
-                    {% endif %}
-                    
-                    <!-- Field Editor (Hidden by default) -->
-                    <div class="field-editor" id="editor-{{ loop.index }}">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <label style="font-weight:600;color:#4f8cff;margin-bottom:6px;">Field Type</label>
-                                <select class="form-control field-type-select" style="margin-bottom:12px;">
-                                    <option value="text" {{ 'selected' if field.type == 'text' else '' }}>Text</option>
-                                    <option value="number" {{ 'selected' if field.type == 'number' else '' }}>Number</option>
-                                    <option value="date" {{ 'selected' if field.type == 'date' else '' }}>Date</option>
-                                    <option value="boolean" {{ 'selected' if field.type == 'boolean' else '' }}>Boolean</option>
-                                    <option value="table" {{ 'selected' if field.type == 'table' else '' }}>Table</option>
-                                </select>
-                            </div>
-                            <div class="col-md-6">
-                                <label style="font-weight:600;color:#4f8cff;margin-bottom:6px;">Field Name</label>
-                                <input type="text" class="form-control field-name-input" value="{{ field.name }}" style="margin-bottom:12px;">
-                            </div>
-                        </div>
-                        <div>
-                            <label style="font-weight:600;color:#4f8cff;margin-bottom:6px;">Field Description</label>
-                            <textarea class="form-control field-desc-input" rows="3" style="margin-bottom:12px;">{{ field.desc }}</textarea>
-                        </div>
-                        
-                        <!-- Table Field Configuration -->
-                        <div class="table-config" style="display:{{ 'block' if field.type == 'table' else 'none' }};margin-top:16px;padding:16px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;">
-                            <label style="font-weight:600;color:#4f8cff;margin-bottom:12px;display:block;">Table Columns Configuration</label>
-                            <div class="table-columns">
-                                {% if field.type == 'table' and field.subfields %}
-                                    {% for subfield in field.subfields %}
-                                    <div class="table-column-row" style="display:flex;gap:12px;margin-bottom:12px;align-items:start;">
-                                        <div style="flex:1;">
-                                            <label style="font-size:0.85rem;color:#6b7280;margin-bottom:4px;">Column Name</label>
-                                            <input type="text" class="form-control column-name-input" value="{{ subfield.name }}" style="font-size:0.9rem;margin-bottom:8px;" onchange="updateTableDisplay(this)">
-                                            <label style="font-size:0.85rem;color:#6b7280;margin-bottom:4px;">Description</label>
-                                            <input type="text" class="form-control column-description-input" value="{{ subfield.description if subfield.description else '' }}" placeholder="Enter column description..." style="font-size:0.9rem;" onchange="updateTableDisplay(this)">
-                                        </div>
-                                        <div style="flex:0 0 120px;">
-                                            <label style="font-size:0.85rem;color:#6b7280;margin-bottom:4px;">Type</label>
-                                            <select class="form-control column-type-select" style="font-size:0.9rem;" onchange="updateTableDisplay(this)">
-                                                <option value="text" {{ 'selected' if subfield.type == 'text' else '' }}>Text</option>
-                                                <option value="number" {{ 'selected' if subfield.type == 'number' else '' }}>Number</option>
-                                                <option value="date" {{ 'selected' if subfield.type == 'date' else '' }}>Date</option>
-                                            </select>
-                                        </div>
-                                        <div style="flex:0 0 auto;padding-top:24px;">
-                                            <button type="button" class="dashboard-btn-outline remove-column-btn" style="padding:8px;margin-bottom:0;">×</button>
-                                        </div>
-                                    </div>
-                                    {% endfor %}
-                                {% endif %}
-                            </div>
-                            <button type="button" class="dashboard-btn-outline add-column-btn" style="padding:6px 12px;font-size:0.85rem;">+ Add Column</button>
-                        </div>
-                        
-                        <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:16px;">
-                            <button class="dashboard-btn-outline save-btn" data-idx="{{ loop.index }}" data-action="save" style="padding:8px 20px;">Save</button>
-                            <button class="dashboard-btn-outline cancel-btn" data-idx="{{ loop.index }}" data-action="cancel" style="padding:8px 20px;">Cancel</button>
-                        </div>
+                    <div class="field-actions">
+                        <button class="action-btn edit-btn" data-idx="{{ loop.index }}" data-action="edit" title="Edit Field">
+                            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 20h9"/>
+                                <path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/>
+                            </svg>
+                        </button>
+                        <button class="action-btn delete delete-btn" data-idx="{{ loop.index }}" data-action="delete" title="Delete Field">
+                            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M3 6h18"/>
+                                <path d="M8 6v12a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2V6"/>
+                                <path d="M10 11v6"/>
+                                <path d="M14 11v6"/>
+                                <path d="M5 6V4a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v2"/>
+                            </svg>
+                        </button>
                     </div>
                 </div>
-                {% endfor %}
-            <button class="extractor-add-field-btn">+ Add New Field</button>
-        </div>
-        <div class="extractor-bottom-bar">
-            <button class="dashboard-btn dashboard-btn-primary">Extract Document</button>
-        </div>
-    </div>
-</div>
-    </div>
-
-</div>
-
-{% endblock content %}
-
-{% block javascripts %}
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Fix sidebar collapse behavior for extractor page
-    function handleNavbarToggle() {
-        var mainRow = document.querySelector('.extractor-main-row');
-        var navbar = document.querySelector('.pcoded-navbar');
-        
-        if (navbar && mainRow) {
-            // Check if navbar is collapsed by looking at its classes or width
-            var isCollapsed = navbar.classList.contains('navbar-collapsed') || 
-                            document.body.classList.contains('navbar-collapsed') ||
-                            (navbar.offsetWidth < 200);
-            
-            if (isCollapsed) {
-                mainRow.style.marginLeft = '0px';
-            } else {
-                mainRow.style.marginLeft = '240px';
-            }
-        }
-    }
-    
-    // Handle navbar toggle clicks
-    var navbarToggles = document.querySelectorAll('#mobile-collapse, #mobile-collapse1, .mobile-menu');
-    navbarToggles.forEach(function(toggle) {
-        toggle.addEventListener('click', function() {
-            setTimeout(handleNavbarToggle, 100); // Small delay for CSS transitions
-        });
-    });
-    
-    // Initial setup
-    handleNavbarToggle();
-    
-    // Also observe body class changes
-    var observer = new MutationObserver(function(mutations) {
-        mutations.forEach(function(mutation) {
-            if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
-                handleNavbarToggle();
-            }
-        });
-    });
-    observer.observe(document.body, { attributes: true });
-    
-    // Field editor functionality
-    function collapseAllFields() {
-        document.querySelectorAll('.extractor-field-row').forEach(function(field) {
-            field.classList.remove('expanded');
-            var editor = field.querySelector('.field-editor');
-            if (editor) editor.style.display = 'none';
-        });
-    }
-    
-    // Add event listeners to all action buttons
-    document.querySelectorAll('.action-btn, .save-btn, .cancel-btn').forEach(function(btn) {
-        btn.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            var idx = btn.getAttribute('data-idx');
-            var action = btn.getAttribute('data-action');
-            var field = document.getElementById('field-' + idx);
-            var editor = document.getElementById('editor-' + idx);
-            
-            if (!field || !editor) {
-                console.warn('Field or editor not found for index:', idx);
-                return;
-            }
-            
-            if (action === 'edit') {
-                // Collapse all other fields first
-                collapseAllFields();
-                // Expand this field
-                field.classList.add('expanded');
-                editor.style.display = 'flex';
-            } else if (action === 'save') {
-                // Save logic - close editor and ensure table subfields are visible if it's a table field
-                field.classList.remove('expanded');
-                editor.style.display = 'none';
+                <div class="field-description">{{ field.desc }}</div>
                 
-                // If this is a table field, ensure subfields are visible
-                var fieldTypeSelect = editor.querySelector('.field-type-select');
-                var tableSubfields = field.querySelector('.table-subfields');
-                
-                if (fieldTypeSelect && fieldTypeSelect.value === 'table' && tableSubfields) {
-                    tableSubfields.style.display = 'block';
-                    field.classList.add('table-field');
-                    
-                    // Sync all table display elements
-                    var tableColumns = field.querySelectorAll('.table-column-row');
-                    tableColumns.forEach(function(columnRow) {
-                        var nameInput = columnRow.querySelector('.column-name-input');
-                        if (nameInput) {
-                            updateTableDisplay(nameInput);
-                        }
-                    });
-                }
-                
-                console.log('Saving field:', idx);
-            } else if (action === 'cancel') {
-                // Cancel - just close
-                field.classList.remove('expanded');
-                editor.style.display = 'none';
-            } else if (action === 'delete') {
-                // Confirm delete
-                if (confirm('Are you sure you want to delete this field?')) {
-                    field.remove();
-                    console.log('Deleted field:', idx);
-                }
-            }
-        });
-    });
-    
-    // Dark mode theme toggle
-    var themeToggle = document.querySelector('#theme-indicator');
-    if (themeToggle) {
-        themeToggle.addEventListener('click', function() {
-            document.body.classList.toggle('dark');
-            
-            // Apply dark mode styles dynamically
-            applyThemeStyles();
-        });
-    }
-    
-    function applyThemeStyles() {
-        var isDark = document.body.classList.contains('dark');
-        
-        // Update upload panel card
-        var uploadCard = document.querySelector('.extractor-upload-panel .dashboard-card');
-        if (uploadCard) {
-            if (isDark) {
-                uploadCard.style.background = '#2C394B';
-                uploadCard.style.color = '#fff';
-            } else {
-                uploadCard.style.background = '#fff';
-                uploadCard.style.color = '#222';
-            }
-        }
-        
-        // Update schema definition title
-        var schemaTitles = document.querySelectorAll('.dashboard-title');
-        schemaTitles.forEach(function(title) {
-            if (isDark) {
-                title.style.color = '#fff';
-            } else {
-                title.style.color = '#222';
-                title.style.fontWeight = '700';
-            }
-        });
-        
-        // Update "Table Columns:" text specifically
-        var tableColumnsText = document.querySelector('.extractor-schema-card div[style*="color:#888"]');
-        if (tableColumnsText) {
-            if (isDark) {
-                tableColumnsText.style.color = '#d0d0d0';
-            } else {
-                tableColumnsText.style.color = '#555';
-                tableColumnsText.style.fontWeight = '500';
-            }
-        }
-        
-        // Also target by margin-bottom style (backup selector)
-        var tableColumnsText2 = document.querySelector('.extractor-schema-card div[style*="margin-bottom:10px"]');
-        if (tableColumnsText2) {
-            if (isDark) {
-                tableColumnsText2.style.color = '#d0d0d0';
-            } else {
-                tableColumnsText2.style.color = '#555';
-                tableColumnsText2.style.fontWeight = '500';
-            }
-        }
-        
-        // Update card titles and text
-        var cardTitles = document.querySelectorAll('.dashboard-card-title');
-        var cardTexts = document.querySelectorAll('.dashboard-card-text');
-        
-        cardTitles.forEach(function(title) {
-            title.style.color = isDark ? '#fff' : '#222';
-        });
-        
-        cardTexts.forEach(function(text) {
-            text.style.color = isDark ? '#d0d0d0' : '#888';
-        });
-    }
-    
-    // Initial theme application
-    applyThemeStyles();
-    
-    // Auto-detect system dark mode
-    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-        if (!document.body.classList.contains('dark')) {
-            document.body.classList.add('dark');
-            applyThemeStyles();
-        }
-    }
-    
-    // Listen for system theme changes
-    if (window.matchMedia) {
-        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e) {
-            if (e.matches) {
-                document.body.classList.add('dark');
-            } else {
-                document.body.classList.remove('dark');
-            }
-            applyThemeStyles();
-        });
-    }
-    
-    // Table field functionality
-    function setupTableFieldEvents() {
-        // Field type change handler
-        document.querySelectorAll('.field-type-select').forEach(function(select) {
-            select.addEventListener('change', function() {
-                var fieldEditor = this.closest('.field-editor');
-                var tableConfig = fieldEditor.querySelector('.table-config');
-                var fieldRow = this.closest('.extractor-field-row');
-                var fieldTypeSpan = fieldRow.querySelector('span[style*="border-radius:12px"]');
-                var tableSubfields = fieldRow.querySelector('.table-subfields');
-                
-                // Update the field type display
-                if (fieldTypeSpan) {
-                    if (this.value === 'text') {
-                        fieldTypeSpan.style.background = '#dbeafe';
-                        fieldTypeSpan.style.color = '#1e40af';
-                        fieldTypeSpan.textContent = 'text';
-                    } else if (this.value === 'number') {
-                        fieldTypeSpan.style.background = '#dcfce7';
-                        fieldTypeSpan.style.color = '#15803d';
-                        fieldTypeSpan.textContent = 'number';
-                    } else if (this.value === 'date') {
-                        fieldTypeSpan.style.background = '#f3e8ff';
-                        fieldTypeSpan.style.color = '#7c3aed';
-                        fieldTypeSpan.textContent = 'date';
-                    } else if (this.value === 'table') {
-                        fieldTypeSpan.style.background = '#e0e7ff';
-                        fieldTypeSpan.style.color = '#4338ca';
-                        fieldTypeSpan.textContent = 'table';
-                    }
-                }
-                
-                // Show/hide table configuration and subfields
-                if (this.value === 'table') {
-                    if (tableConfig) tableConfig.style.display = 'block';
-                    if (!tableSubfields) {
-                        // Create table subfields display if it doesn't exist
-                        var tableSubfieldsHtml =
-                         `
-                            <div class="table-subfields" style="margin-top:16px;padding-top:16px;border-top:1px solid #e5e7eb;">
-                                <div style="font-size:0.9rem;font-weight:600;color:#6b7280;margin-bottom:12px;">Table Columns:</div>
-                                <div class="subfields-container" style="padding-left:16px;">
-                                    <button class="add-subfield-btn" style="display:flex;align-items:center;gap:6px;padding:8px 12px;background:#f3f4f6;border:1px dashed #d1d5db;border-radius:6px;color:#6b7280;font-size:0.85rem;width:100%;margin-top:8px;">
-                                        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                            <path d="M12 5l0 14"/>
-                                            <path d="M5 12l14 0"/>
-                                        </svg>
-                                        Add Table Column
-                                    </button>
-                                </div>
-                            </div>
-                        `;
-                        fieldRow.querySelector('.field-editor').insertAdjacentHTML('beforebegin', tableSubfieldsHtml);
-                        setupTableFieldEvents(); // Re-setup events for new elements
-                        reinitializeEventListeners(); // Re-setup all event listeners
-                        applyThemeStyles(); // Apply dark mode if needed
-                    } else {
-                        tableSubfields.style.display = 'block';
-                    }
-                    
-                    // Add table field class
-                    fieldRow.classList.add('table-field');
-                } else {
-                    if (tableConfig) tableConfig.style.display = 'none';
-                    if (tableSubfields) {
-                        // Completely remove table subfields when switching away from table type
-                        tableSubfields.remove();
-                    }
-                    
-                    // Also clear the table configuration (edit mode) to prevent old columns from persisting
-                    var tableColumns = fieldRow.querySelector('.table-columns');
-                    if (tableColumns) {
-                        // Remove all existing column configurations
-                        tableColumns.innerHTML = '';
-                    }
-                    
-                    fieldRow.classList.remove('table-field');
-                }
-            });
-        });
-        
-        // Add column button handler
-        document.querySelectorAll('.add-column-btn').forEach(function(btn) {
-            btn.addEventListener('click', function(e) {
-                e.preventDefault();
-                // This is now handled by reinitializeEventListeners()
-                // Calling the reinitialized event handler
-                var event = new Event('click');
-                this.dispatchEvent(event);
-            });
-        });
-        
-        // Add subfield button handler
-        document.querySelectorAll('.add-subfield-btn').forEach(function(btn) {
-            btn.addEventListener('click', function(e) {
-                e.preventDefault();
-                var subfieldsContainer = this.closest('.subfields-container');
-                var fieldRow = this.closest('.extractor-field-row');
-                var tableColumns = fieldRow.querySelector('.table-columns');
-                
-                // Create new display element
-                var newSubfieldHtml = `
-                    <div class="subfield-wrapper" style="margin-bottom:12px;">
-                        <div class="subfield-row" style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;">
-                            <div>
-                                <span class="subfield-name" style="font-weight:500;color:#374151;">new_column</span>
-                                <span class="subfield-type" style="margin-left:8px;padding:2px 6px;border-radius:8px;font-size:0.7rem;background:#dbeafe;color:#1e40af !important;font-weight:500;">text</span>
-                            </div>
-                            <button class="action-btn delete-subfield-btn" data-subfield="new_column" title="Remove Column" style="opacity:0.6;">
-                                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M18 6L6 18"/>
-                                    <path d="M6 6l12 12"/>
-                                </svg>
-                            </button>
-                        </div>
-                        <div class="subfield-description" style="color:#6b7280;font-size:0.85rem;margin-top:4px;padding-left:4px;">New table column description</div>
-                    </div>
-                `;
-                
-                // Insert display element before the add button
-                this.insertAdjacentHTML('beforebegin', newSubfieldHtml);
-                
-                // Also add configuration row if table-columns exists
-                if (tableColumns) {
-                    var newColumnHtml = `
-                        <div class="table-column-row" style="display:flex;gap:12px;margin-bottom:12px;align-items:start;">
-                            <div style="flex:1;">
-                                <label style="font-size:0.85rem;color:#6b7280;margin-bottom:4px;">Column Name</label>
-                                <input type="text" class="form-control column-name-input" value="new_column" style="font-size:0.9rem;margin-bottom:8px;" onchange="updateTableDisplay(this)">
-                                <label style="font-size:0.85rem;color:#6b7280;margin-bottom:4px;">Description</label>
-                                <input type="text" class="form-control column-description-input" value="New table column description" style="font-size:0.9rem;" onchange="updateTableDisplay(this)">
-                            </div>
-                            <div style="flex:0 0 120px;">
-                                <label style="font-size:0.85rem;color:#6b7280;margin-bottom:4px;">Type</label>
-                                <select class="form-control column-type-select" style="font-size:0.9rem;" onchange="updateTableDisplay(this)">
-                                    <option value="text" selected>Text</option>
-                                    <option value="number">Number</option>
-                                    <option value="date">Date</option>
-                                </select>
-                            </div>
-                            <div style="flex:0 0 auto;padding-top:24px;">
-                                <button type="button" class="dashboard-btn-outline remove-column-btn" style="padding:8px;margin-bottom:0;">×</button>
-                            </div>
-                        </div>
-                    `;
-                    tableColumns.insertAdjacentHTML('beforeend', newColumnHtml);
-                }
-                
-                reinitializeEventListeners();
-                applyThemeStyles(); // Apply dark mode if needed
-                
-                // Trigger immediate sync
-                setTimeout(function() {
-                    var newNameInput = tableColumns.querySelector('.table-column-row:last-child .column-name-input');
-                    if (newNameInput) {
-                        updateTableDisplay(newNameInput);
-                    }
-                }, 100);
-            });
-        });
-        
-        setupRemoveColumnEvents();
-    }
-    
-    function setupRemoveColumnEvents() {
-        document.querySelectorAll('.remove-column-btn').forEach(function(btn) {
-            btn.addEventListener('click', function(e) {
-                e.preventDefault();
-                var columnRow = this.closest('.table-column-row');
-                var fieldRow = this.closest('.extractor-field-row');
-                var columnIndex = Array.from(columnRow.parentNode.children).indexOf(columnRow);
-                
-                // Remove from configuration
-                columnRow.remove();
-                
-                // Remove corresponding item from display section
-                var subfieldsContainer = fieldRow.querySelector('.subfields-container');
-                if (subfieldsContainer) {
-                    var subfieldWrappers = subfieldsContainer.querySelectorAll('.subfield-wrapper');
-                    if (subfieldWrappers[columnIndex]) {
-                        subfieldWrappers[columnIndex].remove();
-                    }
-                }
-            });
-        });
-        
-        document.querySelectorAll('.delete-subfield-btn').forEach(function(btn) {
-            btn.addEventListener('click', function(e) {
-                e.preventDefault();
-                if (confirm('Remove this table column?')) {
-                    var subfieldWrapper = this.closest('.subfield-wrapper');
-                    var fieldRow = this.closest('.extractor-field-row');
-                    var subfieldsContainer = subfieldWrapper.closest('.subfields-container');
-                    var subfieldIndex = Array.from(subfieldsContainer.querySelectorAll('.subfield-wrapper')).indexOf(subfieldWrapper);
-                    
-                    // Remove from display
-                    subfieldWrapper.remove();
-                    
-                    // Remove corresponding item from configuration
-                    var tableColumns = fieldRow.querySelector('.table-columns');
-                    if (tableColumns) {
-                        var columnRows = tableColumns.querySelectorAll('.table-column-row');
-                        if (columnRows[subfieldIndex]) {
-                            columnRows[subfieldIndex].remove();
-                        }
-                    }
-                }
-            });
-        });
-    }
-    
-    // Function to update table display when configuration changes (make it global)
-    window.updateTableDisplay = function(element) {
-        console.log('updateTableDisplay called');
-        var columnRow = element.closest('.table-column-row');
-        var fieldRow = element.closest('.extractor-field-row');
-        var columnIndex = Array.from(columnRow.parentNode.children).indexOf(columnRow);
-        var subfieldsContainer = fieldRow.querySelector('.subfields-container');
-        
-        console.log('Column index:', columnIndex);
-        console.log('Subfields container found:', !!subfieldsContainer);
-        
-        if (subfieldsContainer) {
-            var subfieldWrappers = subfieldsContainer.querySelectorAll('.subfield-wrapper');
-            var targetWrapper = subfieldWrappers[columnIndex];
-            
-            console.log('Subfield wrappers count:', subfieldWrappers.length);
-            console.log('Target wrapper found:', !!targetWrapper);
-            
-            if (targetWrapper) {
-                var nameInput = columnRow.querySelector('.column-name-input');
-                var descriptionInput = columnRow.querySelector('.column-description-input');
-                var typeSelect = columnRow.querySelector('.column-type-select');
-                var nameSpan = targetWrapper.querySelector('.subfield-name');
-                var descriptionDiv = targetWrapper.querySelector('.subfield-description');
-                var typeSpan = targetWrapper.querySelector('.subfield-type');
-                
-                if (nameInput && nameSpan) {
-                    nameSpan.textContent = nameInput.value || 'column_name';
-                    console.log('Updated name to:', nameInput.value);
-                }
-                
-                if (descriptionInput && descriptionDiv) {
-                    descriptionDiv.textContent = descriptionInput.value || 'Column description';
-                    console.log('Updated description to:', descriptionInput.value);
-                }
-                
-                if (typeSelect && typeSpan) {
-                    var type = typeSelect.value;
-                    typeSpan.textContent = type;
-                    console.log('Updated type to:', type);
-                    
-                    // Update type badge color
-                    if (type === 'text') {
-                        typeSpan.style.background = '#dbeafe';
-                        typeSpan.style.setProperty('color', '#1e40af', 'important');
-                    } else if (type === 'number') {
-                        typeSpan.style.background = '#dcfce7';
-                        typeSpan.style.setProperty('color', '#15803d', 'important');
-                    } else if (type === 'date') {
-                        typeSpan.style.background = '#f3e8ff';
-                        typeSpan.style.setProperty('color', '#7c3aed', 'important');
-                    }
-                }
-            }
-        }
-    }
-    
-    // Function to reinitialize all event listeners
-    function reinitializeEventListeners() {
-        // Remove existing event listeners to prevent duplicates
-        var existingButtons = document.querySelectorAll('.remove-column-btn, .add-column-btn, .delete-subfield-btn');
-        existingButtons.forEach(function(btn) {
-            var newBtn = btn.cloneNode(true);
-            btn.parentNode.replaceChild(newBtn, btn);
-        });
-        
-        // Setup remove column events
-        setupRemoveColumnEvents();
-        
-        // Setup add column events
-        document.querySelectorAll('.add-column-btn').forEach(function(btn) {
-            btn.addEventListener('click', function(e) {
-                e.preventDefault();
-                var tableColumns = this.closest('.table-config').querySelector('.table-columns');
-                var fieldRow = this.closest('.extractor-field-row');
-                var subfieldsContainer = fieldRow.querySelector('.subfields-container');
-                
-                // Create new column configuration row
-                var newColumnHtml = `
-                    <div class="table-column-row" style="display:flex;gap:12px;margin-bottom:12px;align-items:start;">
-                        <div style="flex:1;">
-                            <label style="font-size:0.85rem;color:#6b7280;margin-bottom:4px;">Column Name</label>
-                            <input type="text" class="form-control column-name-input" placeholder="column_name" style="font-size:0.9rem;margin-bottom:8px;" onchange="updateTableDisplay(this)">
-                            <label style="font-size:0.85rem;color:#6b7280;margin-bottom:4px;">Description</label>
-                            <input type="text" class="form-control column-description-input" placeholder="Enter column description..." style="font-size:0.9rem;" onchange="updateTableDisplay(this)">
-                        </div>
-                        <div style="flex:0 0 120px;">
-                            <label style="font-size:0.85rem;color:#6b7280;margin-bottom:4px;">Type</label>
-                            <select class="form-control column-type-select" style="font-size:0.9rem;" onchange="updateTableDisplay(this)">
-                                <option value="text">Text</option>
-                                <option value="number">Number</option>
-                                <option value="date">Date</option>
-                            </select>
-                        </div>
-                        <div style="flex:0 0 auto;padding-top:24px;">
-                            <button type="button" class="dashboard-btn-outline remove-column-btn" style="padding:8px;margin-bottom:0;">×</button>
-                        </div>
-                    </div>
-                `;
-                tableColumns.insertAdjacentHTML('beforeend', newColumnHtml);
-                
-                // Also add to the display section
-                if (subfieldsContainer) {
-                    var addButton = subfieldsContainer.querySelector('.add-subfield-btn');
-                    var newSubfieldHtml = `
-                        <div class="subfield-wrapper" style="margin-bottom:12px;">
-                            <div class="subfield-row" style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;">
+                <!-- Table Sub-fields Display -->
+                {% if field.type == 'table' and field.subfields %}
+                <div class="table-subfields">
+                    <div class="table-columns-title">Table Columns:</div>
+                    <div class="subfields-container">
+                        {% for subfield in field.subfields %}
+                        <div class="subfield-wrapper">
+                            <div class="subfield-row">
                                 <div>
-                                    <span class="subfield-name" style="font-weight:500;color:#374151;">column_name</span>
-                                    <span class="subfield-type" style="margin-left:8px;padding:2px 6px;border-radius:8px;font-size:0.7rem;background:#dbeafe;color:#1e40af !important;font-weight:500;">text</span>
+                                    <span class="subfield-name">{{ subfield.name }}</span>
+                                    <span class="subfield-type {{ subfield.type }}">{{ subfield.type }}</span>
                                 </div>
-                                <button class="action-btn delete-subfield-btn" data-subfield="column_name" title="Remove Column" style="opacity:0.6;">
+                                <button class="action-btn delete-subfield-btn" data-subfield="{{ subfield.name }}" title="Remove Column">
                                     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                         <path d="M18 6L6 18"/>
                                         <path d="M6 6l12 12"/>
                                     </svg>
                                 </button>
                             </div>
-                            <div class="subfield-description" style="color:#6b7280;font-size:0.85rem;margin-top:4px;padding-left:4px;">Column description</div>
+                            <div class="subfield-description">{{ subfield.desc }}</div>
                         </div>
-                    `;
-                    addButton.insertAdjacentHTML('beforebegin', newSubfieldHtml);
-                }
+                        {% endfor %}
+                        <button class="add-subfield-btn" style="display:none;">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 5l0 14"/>
+                                <path d="M5 12l14 0"/>
+                            </svg>
+                            Add Table Column
+                        </button>
+                    </div>
+                </div>
+                {% endif %}
                 
-                reinitializeEventListeners();
-                applyThemeStyles(); // Apply dark mode if needed
-                
-                // Trigger an update to sync the display immediately
-                var newNameInput = tableColumns.querySelector('.table-column-row:last-child .column-name-input');
-                if (newNameInput) {
-                    updateTableDisplay(newNameInput);
-                }
-            });
-        });
-        
-        // Setup delete subfield events
-        document.querySelectorAll('.delete-subfield-btn').forEach(function(btn) {
-            btn.addEventListener('click', function(e) {
-                e.preventDefault();
-                var wrapper = this.closest('.subfield-wrapper');
-                var fieldRow = this.closest('.extractor-field-row');
-                var columnIndex = Array.from(wrapper.parentNode.children).indexOf(wrapper);
-                
-                // Remove from display
-                wrapper.remove();
-                
-                // Remove corresponding configuration row
-                var tableColumns = fieldRow.querySelector('.table-columns');
-                if (tableColumns) {
-                    var columnRows = tableColumns.querySelectorAll('.table-column-row');
-                    if (columnRows[columnIndex]) {
-                        columnRows[columnIndex].remove();
-                    }
-                }
-            });
-        });
-        
-        console.log('Event listeners reinitialized');
-    }
-    
-    // Initialize table field events
-    setupTableFieldEvents();
-    
-    // Initialize all event listeners
-    reinitializeEventListeners();
-    
-    // Add event listener for "Add New Field" button
-    var addFieldBtn = document.querySelector('.extractor-add-field-btn');
-    if (addFieldBtn) {
-        addFieldBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            alert('Add New Field functionality - this would add a new schema field');
-            console.log('Add New Field button clicked');
-        });
-    }
-    
-    // Add event listeners for field description updates
-    document.querySelectorAll('.field-desc-input').forEach(function(textarea) {
-        textarea.addEventListener('input', function() {
-            var fieldRow = this.closest('.extractor-field-row');
-            var descriptionDiv = fieldRow.querySelector('div[style*="color:#888"]');
+                <!-- Field Editor (Hidden by default) -->
+                <div class="field-editor" id="editor-{{ loop.index }}">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label class="field-label">Field Type</label>
+                            <select class="form-control field-type-select">
+                                <option value="text" {{ 'selected' if field.type == 'text' else '' }}>Text</option>
+                                <option value="number" {{ 'selected' if field.type == 'number' else '' }}>Number</option>
+                                <option value="date" {{ 'selected' if field.type == 'date' else '' }}>Date</option>
+                                <option value="boolean" {{ 'selected' if field.type == 'boolean' else '' }}>Boolean</option>
+                                <option value="table" {{ 'selected' if field.type == 'table' else '' }}>Table</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="field-label">Field Name</label>
+                            <input type="text" class="form-control field-name-input" value="{{ field.name }}">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="field-label">Field Description</label>
+                        <textarea class="form-control field-desc-input" rows="3">{{ field.desc }}</textarea>
+                    </div>
+                    
+                    <!-- Table Field Configuration -->
+                    <div class="table-config" style="display:{{ 'block' if field.type == 'table' else 'none' }};">
+                        <label class="table-config-title">Table Columns Configuration</label>
+                        <div class="table-columns">
+                            {% if field.type == 'table' and field.subfields %}
+                                {% for subfield in field.subfields %}
+                                <div class="table-column-row">
+                                    <div class="column-input-group">
+                                        <label class="column-label">Column Name</label>
+                                        <input type="text" class="form-control column-name-input" value="{{ subfield.name }}" onchange="updateTableDisplay(this)">
+                                        <label class="column-label">Description</label>
+                                        <input type="text" class="form-control column-description-input" value="{{ subfield.desc or '' }}" placeholder="Enter column description..." onchange="updateTableDisplay(this)">
+                                    </div>
+                                    <div class="column-type-group">
+                                        <label class="column-label">Type</label>
+                                        <select class="form-control column-type-select" onchange="updateTableDisplay(this)">
+                                            <option value="text" {{ 'selected' if subfield.type == 'text' else '' }}>Text</option>
+                                            <option value="number" {{ 'selected' if subfield.type == 'number' else '' }}>Number</option>
+                                            <option value="date" {{ 'selected' if subfield.type == 'date' else '' }}>Date</option>
+                                        </select>
+                                    </div>
+                                    <div class="column-actions">
+                                        <button type="button" class="dashboard-btn-outline remove-column-btn">×</button>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+                        <button type="button" class="dashboard-btn-outline add-column-btn">+ Add Column</button>
+                    </div>
+                    
+                    <div class="editor-actions">
+                        <button class="dashboard-btn-outline save-btn" data-idx="{{ loop.index }}" data-action="save">Save</button>
+                        <button class="dashboard-btn-outline cancel-btn" data-idx="{{ loop.index }}" data-action="cancel">Cancel</button>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
             
-            if (descriptionDiv) {
-                descriptionDiv.textContent = this.value || 'Field description';
-            }
-        });
-    });
-    
-    // Add event listener for "Extract Document" button
-    var extractBtn = document.querySelector('.extractor-bottom-bar .dashboard-btn-primary');
-    if (extractBtn) {
-        extractBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            alert('Extract Document functionality - this would process the uploaded document');
-            console.log('Extract Document button clicked');
-        });
-    }
-    
-    // Global test function
-    window.testJS = function() {
-        alert('JavaScript is working!');
-        console.log('JavaScript test successful');
-    };
-    
-    console.log('Extractor page initialized successfully');
-    console.log('You can test JavaScript by running testJS() in the console');
-});
-</script>
-{% endblock %}
+            <button class="extractor-add-field-btn">+ Add New Field</button>
+        </div>
+        
+        <div class="extractor-bottom-bar">
+            <button class="dashboard-btn dashboard-btn-primary">Extract Document</button>
+        </div>
+    </div>
+</div>
+{% endblock content %}
+
+{% block javascripts %}
+<script src="/static/assets/js/extractor.js"></script>
+{% endblock javascripts %}

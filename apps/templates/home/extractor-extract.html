@@ -93,22 +93,13 @@
                                     <span class="subfield-name">{{ subfield.name }}</span>
                                     <span class="subfield-type {{ subfield.type }}">{{ subfield.type }}</span>
                                 </div>
-                                <button class="action-btn delete-subfield-btn" data-subfield="{{ subfield.name }}" title="Remove Column">
-                                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <path d="M18 6L6 18"/>
-                                        <path d="M6 6l12 12"/>
-                                    </svg>
-                                </button>
+                                <button class="column-delete-btn delete-subfield-btn" data-subfield="{{ subfield.name }}" title="Remove Column">×</button>
                             </div>
                             <div class="subfield-description">{{ subfield.desc }}</div>
                         </div>
                         {% endfor %}
-                        <button class="add-subfield-btn" style="display:none;">
-                            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M12 5l0 14"/>
-                                <path d="M5 12l14 0"/>
-                            </svg>
-                            Add Table Column
+                        <button class="add-column-btn add-subfield-btn" style="display:none;">
+                            + Add Table Column
                         </button>
                     </div>
                 </div>
@@ -159,18 +150,18 @@
                                         </select>
                                     </div>
                                     <div class="column-actions">
-                                        <button type="button" class="dashboard-btn-outline remove-column-btn">×</button>
+                                        <button type="button" class="column-delete-btn remove-column-btn">×</button>
                                     </div>
                                 </div>
                                 {% endfor %}
                             {% endif %}
                         </div>
-                        <button type="button" class="dashboard-btn-outline add-column-btn">+ Add Column</button>
+                        <button type="button" class="add-column-btn">+ Add Column</button>
                     </div>
                     
-                    <div class="editor-actions">
-                        <button class="dashboard-btn-outline save-btn" data-idx="{{ loop.index }}" data-action="save">Save</button>
-                        <button class="dashboard-btn-outline cancel-btn" data-idx="{{ loop.index }}" data-action="cancel">Cancel</button>
+                    <div class="editor-actions table-action-buttons">
+                        <button class="table-save-btn save-btn" data-idx="{{ loop.index }}" data-action="save">Save</button>
+                        <button class="table-cancel-btn cancel-btn" data-idx="{{ loop.index }}" data-action="cancel">Cancel</button>
                     </div>
                 </div>
             </div>

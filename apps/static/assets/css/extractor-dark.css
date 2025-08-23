@@ -135,6 +135,11 @@ body.dark .column-description-input {
     color: #f7fafc !important;
 }
 
+/* Dark mode for column labels */
+body.dark .column-label {
+    color: #d1d5db !important;
+}
+
 /* Add Buttons */
 body.dark .add-subfield-btn {
     background: #374151 !important;
@@ -222,6 +227,51 @@ body.dark .upload-icon {
 
 body.dark .upload-icon:hover {
     box-shadow: 0 12px 30px rgba(79, 70, 229, 0.5);
+}
+
+/* Enhanced Table Column Management Buttons - Dark Mode */
+body.dark .add-column-btn {
+    background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%);
+    box-shadow: 0 2px 4px rgba(124, 58, 237, 0.3);
+}
+
+body.dark .add-column-btn:hover {
+    background: linear-gradient(135deg, #6d28d9 0%, #4c1d95 100%);
+    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.4);
+}
+
+body.dark .column-delete-btn {
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+    box-shadow: 0 2px 4px rgba(220, 38, 38, 0.3);
+}
+
+body.dark .column-delete-btn:hover {
+    background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%);
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.4);
+}
+
+body.dark .table-action-buttons {
+    border-top: 1px solid #4a5568;
+}
+
+body.dark .table-save-btn {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    box-shadow: 0 2px 4px rgba(5, 150, 105, 0.3);
+}
+
+body.dark .table-save-btn:hover {
+    background: linear-gradient(135deg, #047857 0%, #065f46 100%);
+    box-shadow: 0 4px 12px rgba(5, 150, 105, 0.4);
+}
+
+body.dark .table-cancel-btn {
+    background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
+    box-shadow: 0 2px 4px rgba(74, 85, 104, 0.3);
+}
+
+body.dark .table-cancel-btn:hover {
+    background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
+    box-shadow: 0 4px 12px rgba(74, 85, 104, 0.4);
 }
 
 /* Mobile Responsive */

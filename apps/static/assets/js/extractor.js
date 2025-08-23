@@ -39,6 +39,33 @@ class ExtractorManager {
         if (extractBtn) {
             extractBtn.addEventListener('click', (e) => this.handleExtract(e));
         }
+
+        // Setup real-time field editing
+        this.setupRealTimeFieldEditing();
+    }
+
+    setupRealTimeFieldEditing() {
+        // Add event listeners for real-time field name updates
+        document.querySelectorAll('.field-name-input').forEach(input => {
+            input.addEventListener('input', (e) => {
+                const field = e.target.closest('.extractor-field-row');
+                const fieldNameSpan = field.querySelector('.field-name');
+                if (fieldNameSpan) {
+                    fieldNameSpan.textContent = e.target.value || 'unnamed_field';
+                }
+            });
+        });
+
+        // Add event listeners for real-time field description updates
+        document.querySelectorAll('.field-desc-input').forEach(textarea => {
+            textarea.addEventListener('input', (e) => {
+                const field = e.target.closest('.extractor-field-row');
+                const fieldDescDiv = field.querySelector('.field-description');
+                if (fieldDescDiv) {
+                    fieldDescDiv.textContent = e.target.value || 'No description provided';
+                }
+            });
+        });
     }
 
     handleNavbarToggle() {
@@ -79,6 +106,9 @@ class ExtractorManager {
     }
 
     saveField(field, editor, idx) {
+        // Update field display with the edited values
+        this.updateFieldDisplay(field, editor);
+        
         field.classList.remove('expanded');
         editor.style.display = 'none';
 
@@ -103,6 +133,41 @@ class ExtractorManager {
         console.log('Saving field:', idx);
     }
 
+    updateFieldDisplay(field, editor) {
+        // Update field name
+        const nameInput = editor.querySelector('.field-name-input');
+        const fieldNameSpan = field.querySelector('.field-name');
+        if (nameInput && fieldNameSpan) {
+            fieldNameSpan.textContent = nameInput.value || 'unnamed_field';
+        }
+
+        // Update field description
+        const descInput = editor.querySelector('.field-desc-input');
+        const fieldDescDiv = field.querySelector('.field-description');
+        if (descInput && fieldDescDiv) {
+            fieldDescDiv.textContent = descInput.value || 'No description provided';
+        }
+
+        // Update field type badge
+        const typeSelect = editor.querySelector('.field-type-select');
+        const typeBadge = field.querySelector('.field-type-badge');
+        if (typeSelect && typeBadge) {
+            const newType = typeSelect.value;
+            typeBadge.textContent = newType;
+            typeBadge.className = `field-type-badge ${newType}`;
+            
+            // Update field row class for table fields
+            if (newType === 'table') {
+                field.classList.add('table-field');
+            } else {
+                field.classList.remove('table-field');
+            }
+        }
+
+        // Apply theme styles to the updated elements
+        this.applyThemeStyles();
+    }
+
     cancelEdit(field, editor) {
         field.classList.remove('expanded');
         editor.style.display = 'none';
@@ -117,8 +182,143 @@ class ExtractorManager {
 
     handleAddField(e) {
         e.preventDefault();
-        console.log('Add new field functionality would go here');
-        alert('Add new field functionality not implemented yet');
+        
+        // Find the schema container and add button
+        const schemaCard = document.querySelector('.extractor-schema-card');
+        const addFieldBtn = document.querySelector('.extractor-add-field-btn');
+        
+        if (!schemaCard || !addFieldBtn) {
+            console.error('Schema container or add button not found');
+            return;
+        }
+        
+        // Get the next field index
+        const existingFields = document.querySelectorAll('.extractor-field-row');
+        const nextIndex = existingFields.length + 1;
+        
+        // Create new field HTML
+        const newFieldHtml = this.createNewFieldHtml(nextIndex);
+        
+        // Insert before the add button
+        addFieldBtn.insertAdjacentHTML('beforebegin', newFieldHtml);
+        
+        // Setup event listeners for the new field only
+        const newField = document.getElementById(`field-${nextIndex}`);
+        const newEditor = document.getElementById(`editor-${nextIndex}`);
+        
+        if (newField && newEditor) {
+            // Add event listeners to the new field's buttons only
+            newField.querySelectorAll('.action-btn, .save-btn, .cancel-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => this.handleFieldAction(e));
+            });
+            
+            // Add event listeners to the new field's select and inputs for real-time editing
+            const nameInput = newEditor.querySelector('.field-name-input');
+            const descInput = newEditor.querySelector('.field-desc-input');
+            
+            if (nameInput) {
+                nameInput.addEventListener('input', (e) => {
+                    const fieldNameSpan = newField.querySelector('.field-name');
+                    if (fieldNameSpan) {
+                        fieldNameSpan.textContent = e.target.value || 'unnamed_field';
+                    }
+                });
+            }
+            
+            if (descInput) {
+                descInput.addEventListener('input', (e) => {
+                    const fieldDescDiv = newField.querySelector('.field-description');
+                    if (fieldDescDiv) {
+                        fieldDescDiv.textContent = e.target.value || 'No description';
+                    }
+                });
+            }
+            
+            // Setup table field events for the new field
+            this.setupTableFieldEventsForElement(newEditor);
+            this.applyThemeStyles();
+            
+            // Auto-open the edit mode for the new field
+            setTimeout(() => {
+                this.editField(newField, newEditor);
+                // Focus on the field name input
+                const nameInput = newEditor.querySelector('.field-name-input');
+                if (nameInput) {
+                    nameInput.focus();
+                    nameInput.select();
+                }
+            }, 100);
+        }
+        
+        console.log('Added new field with index:', nextIndex);
+    }
+
+    createNewFieldHtml(index) {
+        return `
+            <div class="extractor-field-row" id="field-${index}">
+                <div class="field-header">
+                    <div>
+                        <span class="field-name">new_field_${index}</span>
+                        <span class="field-type-badge text">text</span>
+                    </div>
+                    <div class="field-actions">
+                        <button class="action-btn edit-btn" data-idx="${index}" data-action="edit" title="Edit Field">
+                            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 20h9"/>
+                                <path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/>
+                            </svg>
+                        </button>
+                        <button class="action-btn delete delete-btn" data-idx="${index}" data-action="delete" title="Delete Field">
+                            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M3 6h18"/>
+                                <path d="M8 6v12a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2V6"/>
+                                <path d="M10 11v6"/>
+                                <path d="M14 11v6"/>
+                                <path d="M5 6V4a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v2"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="field-description">Description for new field ${index}</div>
+                
+                <!-- Field Editor (Hidden by default) -->
+                <div class="field-editor" id="editor-${index}">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label class="field-label">Field Type</label>
+                            <select class="form-control field-type-select">
+                                <option value="text" selected>Text</option>
+                                <option value="number">Number</option>
+                                <option value="date">Date</option>
+                                <option value="boolean">Boolean</option>
+                                <option value="table">Table</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="field-label">Field Name</label>
+                            <input type="text" class="form-control field-name-input" value="new_field_${index}">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="field-label">Field Description</label>
+                        <textarea class="form-control field-desc-input" rows="3">Description for new field ${index}</textarea>
+                    </div>
+                    
+                    <!-- Table Field Configuration -->
+                    <div class="table-config" style="display:none;">
+                        <label class="table-config-title">Table Columns Configuration</label>
+                        <div class="table-columns">
+                        </div>
+                        <button type="button" class="add-column-btn">+ Add Column</button>
+                    </div>
+                    
+                    <div class="editor-actions table-action-buttons">
+                        <button class="table-save-btn save-btn" data-idx="${index}" data-action="save">Save</button>
+                        <button class="table-cancel-btn cancel-btn" data-idx="${index}" data-action="cancel">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        `;
     }
 
     handleExtract(e) {
@@ -153,6 +353,31 @@ class ExtractorManager {
         });
 
         this.setupRemoveColumnEvents();
+    }
+
+    setupTableFieldEventsForElement(element) {
+        // Field type change handler for specific element
+        const typeSelect = element.querySelector('.field-type-select');
+        if (typeSelect) {
+            typeSelect.addEventListener('change', (e) => this.handleFieldTypeChange(e));
+        }
+
+        // Add column button handler for specific element
+        const addColumnBtn = element.querySelector('.add-column-btn');
+        if (addColumnBtn) {
+            addColumnBtn.addEventListener('click', (e) => this.handleAddColumn(e));
+        }
+
+        // Add subfield button handler for specific element
+        const addSubfieldBtn = element.querySelector('.add-subfield-btn');
+        if (addSubfieldBtn) {
+            addSubfieldBtn.addEventListener('click', (e) => this.handleAddSubfield(e));
+        }
+
+        // Setup remove column events for this element
+        element.querySelectorAll('.remove-column-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => this.handleRemoveColumn(e));
+        });
     }
 
     handleFieldTypeChange(e) {
@@ -275,8 +500,27 @@ class ExtractorManager {
             addSubfieldBtn.insertAdjacentHTML('beforebegin', newSubfieldHtml);
         }
         
-        // Reinitialize event listeners for the new column
-        this.reinitializeEventListeners();
+        // Add event listeners to the newly created elements only
+        const newColumnRow = tableColumns.querySelector('.table-column-row:last-child');
+        if (newColumnRow) {
+            // Add event listener to the remove button
+            const removeBtn = newColumnRow.querySelector('.remove-column-btn');
+            if (removeBtn) {
+                removeBtn.addEventListener('click', (e) => this.handleRemoveColumn(e));
+            }
+        }
+        
+        // Add event listener to the new subfield delete button if it exists
+        if (subfieldsContainer) {
+            const newSubfieldWrapper = subfieldsContainer.querySelector('.subfield-wrapper:last-of-type');
+            if (newSubfieldWrapper) {
+                const deleteBtn = newSubfieldWrapper.querySelector('.delete-subfield-btn');
+                if (deleteBtn) {
+                    deleteBtn.addEventListener('click', (e) => this.handleDeleteSubfield(e));
+                }
+            }
+        }
+        
         this.applyThemeStyles();
         
         // Trigger immediate sync to update display
@@ -302,9 +546,26 @@ class ExtractorManager {
         if (tableColumns) {
             const newColumnHtml = this.createColumnConfigHtml();
             tableColumns.insertAdjacentHTML('beforeend', newColumnHtml);
+            
+            // Add event listeners to the newly created column row
+            const newColumnRow = tableColumns.querySelector('.table-column-row:last-child');
+            if (newColumnRow) {
+                const removeBtn = newColumnRow.querySelector('.remove-column-btn');
+                if (removeBtn) {
+                    removeBtn.addEventListener('click', (e) => this.handleRemoveColumn(e));
+                }
+            }
         }
 
-        this.reinitializeEventListeners();
+        // Add event listener to the new subfield delete button
+        const newSubfieldWrapper = subfieldsContainer.querySelector('.subfield-wrapper:last-of-type');
+        if (newSubfieldWrapper) {
+            const deleteBtn = newSubfieldWrapper.querySelector('.delete-subfield-btn');
+            if (deleteBtn) {
+                deleteBtn.addEventListener('click', (e) => this.handleDeleteSubfield(e));
+            }
+        }
+
         this.applyThemeStyles();
 
         // Trigger immediate sync
@@ -324,12 +585,7 @@ class ExtractorManager {
                         <span class="subfield-name">new_column</span>
                         <span class="subfield-type text">text</span>
                     </div>
-                    <button class="action-btn delete-subfield-btn" data-subfield="new_column" title="Remove Column">
-                        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M18 6L6 18"/>
-                            <path d="M6 6l12 12"/>
-                        </svg>
-                    </button>
+                    <button class="column-delete-btn delete-subfield-btn" data-subfield="new_column" title="Remove Column">×</button>
                 </div>
                 <div class="subfield-description">New table column description</div>
             </div>
@@ -354,7 +610,7 @@ class ExtractorManager {
                     </select>
                 </div>
                 <div class="column-actions">
-                    <button type="button" class="dashboard-btn-outline remove-column-btn">×</button>
+                    <button type="button" class="column-delete-btn remove-column-btn">×</button>
                 </div>
             </div>
         `;
@@ -474,6 +730,9 @@ class ExtractorManager {
         document.querySelectorAll('.add-column-btn').forEach(btn => {
             btn.addEventListener('click', (e) => this.handleAddColumn(e));
         });
+
+        // Re-setup real-time field editing
+        this.setupRealTimeFieldEditing();
     }
 
     applyThemeStyles() {

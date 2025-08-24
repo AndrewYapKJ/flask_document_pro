@@ -25,6 +25,15 @@ class ExtractorManager {
         this.reinitializeEventListeners();
         this.applyThemeStyles();
         this.setupThemeObserver();
+        this.initializeUploadState();
+    }
+
+    initializeUploadState() {
+        // Add upload-only class for initial centering since no document is loaded
+        const documentPanel = document.querySelector('.extractor-document-panel');
+        if (documentPanel) {
+            documentPanel.classList.add('upload-only');
+        }
     }
 
     setupEventListeners() {
@@ -533,7 +542,7 @@ class ExtractorManager {
                     </div>
                     <div>
                         <label class="field-label">Field Description</label>
-                        <textarea class="form-control field-desc-input" rows="3">Description for new field ${index}</textarea>
+                        <textarea class="form-control field-desc-input" rows="3" placeholder="#DESCRIPTION: short description of the field&#10;&#10;# LABEL SYNONYM: e.g., 'Invoice No.', 'Inv #', 'Ref No.'&#10;&#10;# LOCATION: e.g. in the header or bottom of page or next to delivery address"></textarea>
                     </div>
                     
                     <!-- Table Field Configuration -->
@@ -609,10 +618,16 @@ class ExtractorManager {
         
         const uploadCard = document.querySelector('.upload-card');
         const documentPreview = document.querySelector('.document-preview-container');
+        const documentPanel = document.querySelector('.extractor-document-panel');
         
         if (!uploadCard || !documentPreview) {
             console.error('Upload card or document preview container not found');
             return;
+        }
+        
+        // Remove upload-only class for centering since we're showing document
+        if (documentPanel) {
+            documentPanel.classList.remove('upload-only');
         }
         
         // Hide upload card and show document preview
@@ -1057,10 +1072,14 @@ class ExtractorManager {
             documentPreview.style.display = 'none';
         }
         
-        // Show upload card
+        // Show upload card and add centering class
         const uploadCard = document.querySelector('.upload-card');
+        const documentPanel = document.querySelector('.extractor-document-panel');
         if (uploadCard) {
             uploadCard.style.display = 'block';
+        }
+        if (documentPanel) {
+            documentPanel.classList.add('upload-only');
         }
     }
 

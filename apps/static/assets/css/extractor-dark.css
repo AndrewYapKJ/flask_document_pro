@@ -5,6 +5,13 @@ body.dark .extractor-document-panel {
     background: #181a20;
     border-right: 1px solid #334756;
 }
+
+/* Center upload card when no document is loaded - Dark Mode */
+body.dark .extractor-document-panel.upload-only {
+    justify-content: center;
+    align-items: center;
+}
+
 body.dark .extractor-schema-panel {
     background: #181a20;
 }

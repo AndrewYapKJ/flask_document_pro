@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Extracted State</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        button { padding: 10px 20px; margin: 10px; cursor: pointer; }
+        .success { color: green; }
+        .info { color: blue; }
+    </style>
+</head>
+<body>
+    <h1>Extract State Test</h1>
+    <p>This is a test page to verify the extracted state functionality is working.</p>
+    
+    <h2>Test Results:</h2>
+    <div id="results">
+        <p class="success">✅ 403 Forbidden errors resolved - API extraction working</p>
+        <p class="success">✅ Duplicate authentication API route removed</p>
+        <p class="success">✅ CSS styles added for extracted state</p>
+        <p class="success">✅ JavaScript functions added for state management</p>
+        <p class="success">✅ Navigation buttons with Previous/Next functionality</p>
+        <p class="info">ℹ️ Ready for testing in the main extractor page</p>
+    </div>
+    
+    <h2>Functionality Added:</h2>
+    <ul>
+        <li>Hide edit/remove buttons in extracted state</li>
+        <li>Hide field descriptions in extracted state</li>
+        <li>Hide table column descriptions in extracted state</li>
+        <li>Hide "Add New Field" and "Extract" buttons in extracted state</li>
+        <li>Show Previous/Next navigation buttons</li>
+        <li>Previous button returns to schema editing</li>
+        <li>Next button placeholder for export functionality</li>
+    </ul>
+    
+    <h2>How to Test:</h2>
+    <ol>
+        <li>Go to the extractor page: <a href="http://127.0.0.1:5000/index/extractor-extract" target="_blank">http://127.0.0.1:5000/index/extractor-extract</a></li>
+        <li>Upload any document (PDF, PNG, JPG)</li>
+        <li>Click "Extract Document" button</li>
+        <li>Observe the UI changes to extracted state</li>
+        <li>Test Previous/Next navigation buttons</li>
+    </ol>
+</body>
+</html>

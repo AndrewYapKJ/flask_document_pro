@@ -38,38 +38,6 @@ def api_auth():
     if not user:
         return jsonify({'error': 'Invalid API key'}), 403
     return jsonify({'success': True, 'user_id': user.id, 'username': user.username}), 200
-
-# API endpoint for file upload and text extraction
-@blueprint.route('/api/extract', methods=['POST'])
-def api_extract():
-    api_key = request.headers.get('X-API-KEY') or request.args.get('api_key')
-    user = Users.query.filter_by(api_key=api_key).first()
-    if not user:
-        return jsonify({'error': 'Invalid API key'}), 403
-    if 'file' not in request.files:
-        return jsonify({'error': 'No file uploaded'}), 400
-    file = request.files['file']
-    # Save file temporarily
-    temp_path = os.path.join('/tmp', file.filename)
-    file.save(temp_path)
-    # Simple text extraction (for demonstration)
-    try:
-        with open(temp_path, 'r', encoding='utf-8', errors='ignore') as f:
-            text = f.read()
-    except Exception:
-        text = 'Unable to extract text.'
-    os.remove(temp_path)
-    # Trigger webhook if set
-    if user.webhook_url:
-        try:
-            requests.post(user.webhook_url, json={
-                'user_id': user.id,
-                'filename': file.filename,
-                'text': text
-            })
-        except Exception:
-            pass
-    return jsonify({'extracted_text': text}), 200
 # -*- encoding: utf-8 -*-
 """
 Copyright (c) 2019 - present AppSeed.us

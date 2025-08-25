@@ -16,6 +16,10 @@ class ExtractorManager {
         this.resizeTimeout = null;
         this.lastContainerWidth = 0;
         
+        // Initialize extraction-related properties
+        this.originalSchemaContent = null;
+        this.lastExtractionResults = null;
+        
         this.init();
     }
 
@@ -110,24 +114,30 @@ class ExtractorManager {
     setupRealTimeFieldEditing() {
         // Add event listeners for real-time field name updates
         document.querySelectorAll('.field-name-input').forEach(input => {
-            input.addEventListener('input', (e) => {
-                const field = e.target.closest('.extractor-field-row');
-                const fieldNameSpan = field.querySelector('.field-name');
-                if (fieldNameSpan) {
-                    fieldNameSpan.textContent = e.target.value || 'unnamed_field';
-                }
-            });
+            if (!input.hasAttribute('data-listener-attached')) {
+                input.addEventListener('input', (e) => {
+                    const field = e.target.closest('.extractor-field-row');
+                    const fieldNameSpan = field.querySelector('.field-name');
+                    if (fieldNameSpan) {
+                        fieldNameSpan.textContent = e.target.value || 'unnamed_field';
+                    }
+                });
+                input.setAttribute('data-listener-attached', 'true');
+            }
         });
 
         // Add event listeners for real-time field description updates
         document.querySelectorAll('.field-desc-input').forEach(textarea => {
-            textarea.addEventListener('input', (e) => {
-                const field = e.target.closest('.extractor-field-row');
-                const fieldDescDiv = field.querySelector('.field-description');
-                if (fieldDescDiv) {
-                    fieldDescDiv.textContent = e.target.value || 'No description provided';
-                }
-            });
+            if (!textarea.hasAttribute('data-listener-attached')) {
+                textarea.addEventListener('input', (e) => {
+                    const field = e.target.closest('.extractor-field-row');
+                    const fieldDescDiv = field.querySelector('.field-description');
+                    if (fieldDescDiv) {
+                        fieldDescDiv.textContent = e.target.value || 'No description provided';
+                    }
+                });
+                textarea.setAttribute('data-listener-attached', 'true');
+            }
         });
     }
 
@@ -139,12 +149,24 @@ class ExtractorManager {
     handleFieldAction(e) {
         e.preventDefault();
         const btn = e.target.closest('button');
+        
+        if (!btn) {
+            console.error('No button found in handleFieldAction');
+            return;
+        }
+        
         const action = btn.dataset.action;
         const idx = btn.dataset.idx;
+        
+        console.log(`Handling field action: ${action} for field ${idx}`);
+        
         const field = document.getElementById(`field-${idx}`);
         const editor = document.getElementById(`editor-${idx}`);
 
-        if (!field || !editor) return;
+        if (!field || !editor) {
+            console.error(`Field or editor not found: field-${idx}, editor-${idx}`);
+            return;
+        }
 
         switch (action) {
             case 'edit':
@@ -159,6 +181,8 @@ class ExtractorManager {
             case 'delete':
                 this.deleteField(field, idx);
                 break;
+            default:
+                console.error(`Unknown action: ${action}`);
         }
     }
 
@@ -208,6 +232,11 @@ class ExtractorManager {
     saveField(field, editor, idx) {
         // Update field display with the edited values
         this.updateFieldDisplay(field, editor);
+        
+        // Remove the "new field" marker if it exists (field is now saved)
+        if (field.hasAttribute('data-is-new-field')) {
+            field.removeAttribute('data-is-new-field');
+        }
         
         field.classList.remove('expanded');
         editor.style.display = 'none';
@@ -410,6 +439,12 @@ class ExtractorManager {
             tableSubfields.style.display = 'block';
         }
 
+        // If this is a newly added field that hasn't been saved, remove it
+        if (field.hasAttribute('data-is-new-field')) {
+            field.remove();
+            return;
+        }
+
         field.classList.remove('expanded');
         editor.style.display = 'none';
     }
@@ -448,6 +483,9 @@ class ExtractorManager {
         const newEditor = document.getElementById(`editor-${nextIndex}`);
         
         if (newField && newEditor) {
+            // Mark this as a newly added field
+            newField.setAttribute('data-is-new-field', 'true');
+            
             // Add event listeners to the new field's buttons only
             newField.querySelectorAll('.action-btn, .save-btn, .cancel-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => this.handleFieldAction(e));
@@ -1216,15 +1254,484 @@ class ExtractorManager {
     }
 
     renderExtractionResults(results) {
-        // Create results panel
-        const resultsPanel = this.createResultsPanel(results);
+        // Store the extraction results for use in the new UI
+        this.lastExtractionResults = results;
         
-        // Insert results panel after the schema panel
+        // Switch to extracted state with new UI
+        this.switchToExtractedState();
+        
+        // Show success message
+        this.showExtractionSuccess();
+    }
+
+    switchToExtractedState() {
+        // Store the original schema panel content for restoration
         const schemaPanel = document.querySelector('.extractor-schema-panel');
-        schemaPanel.parentNode.insertBefore(resultsPanel, schemaPanel.nextSibling);
+        if (!schemaPanel) return;
         
-        // Scroll to results
-        resultsPanel.scrollIntoView({ behavior: 'smooth' });
+        // Store original content if not already stored
+        if (!this.originalSchemaContent) {
+            // Clear any data attributes before storing to ensure clean restoration
+            const panelClone = schemaPanel.cloneNode(true);
+            panelClone.querySelectorAll('[data-listener-attached]').forEach(el => {
+                el.removeAttribute('data-listener-attached');
+            });
+            this.originalSchemaContent = panelClone.innerHTML;
+            console.log('Stored original schema content for restoration');
+        }
+        
+        // Replace the entire schema panel with extraction results UI
+        this.replaceWithExtractionUI();
+    }
+
+    replaceWithExtractionUI() {
+        const schemaPanel = document.querySelector('.extractor-schema-panel');
+        if (!schemaPanel) return;
+        
+        // Create the new extraction results UI
+        const extractionUI = `
+            <div class="dashboard-card extraction-results-card">
+                <div class="dashboard-title extraction-title">Extraction Results</div>
+                <div class="extraction-subtitle">Document has been successfully processed</div>
+                
+                <!-- Extraction Results Container -->
+                <div class="extraction-results-container">
+                    <!-- Results will be populated here -->
+                </div>
+                
+                <!-- Navigation Bar -->
+                <div class="extractor-navigation-bar">
+                    <button class="nav-btn nav-btn-secondary previous-btn">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M19 12H5"/>
+                            <path d="M12 19l-7-7 7-7"/>
+                        </svg>
+                        Previous
+                    </button>
+                    <button class="nav-btn nav-btn-primary next-btn">
+                        Next
+                        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M5 12h14"/>
+                            <path d="M12 5l7 7-7 7"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        // Replace the content
+        schemaPanel.innerHTML = extractionUI;
+        
+        // Add event listeners for navigation buttons
+        const previousBtn = schemaPanel.querySelector('.previous-btn');
+        const nextBtn = schemaPanel.querySelector('.next-btn');
+        
+        if (previousBtn) {
+            previousBtn.addEventListener('click', () => this.handlePreviousStep());
+        }
+        
+        if (nextBtn) {
+            nextBtn.addEventListener('click', () => this.handleNextStep());
+        }
+        
+        // Now populate the results container with extracted data
+        this.populateExtractionResults();
+    }
+
+    populateExtractionResults() {
+        const resultsContainer = document.querySelector('.extraction-results-container');
+        if (!resultsContainer || !this.lastExtractionResults) return;
+        
+        let resultsHTML = '';
+        
+        // Get schema field mapping
+        const schemaMapping = this.getSchemaFieldMapping();
+        
+        // Process each field result
+        Object.entries(this.lastExtractionResults).forEach(([fieldName, value]) => {
+            if (fieldName === 'line_items' && Array.isArray(value)) {
+                // Handle table data
+                resultsHTML += this.createTableResultHTML(fieldName, value, schemaMapping);
+            } else {
+                // Handle regular fields
+                resultsHTML += this.createFieldResultHTML(fieldName, value, schemaMapping);
+            }
+        });
+        
+        resultsContainer.innerHTML = resultsHTML;
+    }
+
+    createFieldResultHTML(fieldName, value, schemaMapping = {}) {
+        // Use schema field name if available, otherwise format the fieldName
+        const displayName = schemaMapping[fieldName] || this.formatFieldName(fieldName);
+        const displayValue = value !== null && value !== undefined && value !== '' 
+            ? String(value) 
+            : 'No value extracted';
+        
+        const hasValue = value !== null && value !== undefined && value !== '';
+        
+        return `
+            <div class="extraction-field-result ${hasValue ? 'has-value' : 'no-value'}">
+                <div class="field-result-header">
+                    <span class="field-result-name">${displayName}</span>
+                </div>
+                <div class="field-result-value">${displayValue}</div>
+            </div>
+        `;
+    }
+
+    createTableResultHTML(fieldName, tableData, schemaMapping = {}) {
+        // Use schema field name if available, otherwise format the fieldName
+        const displayName = schemaMapping[fieldName] || this.formatFieldName(fieldName);
+        
+        if (!Array.isArray(tableData) || tableData.length === 0) {
+            return `
+                <div class="extraction-field-result no-value">
+                    <div class="field-result-header">
+                        <span class="field-result-name">${displayName}</span>
+                    </div>
+                    <div class="field-result-value">No table data extracted</div>
+                </div>
+            `;
+        }
+        
+        const tableHTML = this.createTableHTML(tableData);
+        
+        return `
+            <div class="extraction-field-result has-value table-result">
+                <div class="field-result-header">
+                    <span class="field-result-name">${displayName}</span>
+                </div>
+                <div class="field-result-table">
+                    ${tableHTML}
+                </div>
+            </div>
+        `;
+    }
+
+    formatFieldName(fieldName) {
+        // Convert field names to readable format
+        return fieldName
+            .replace(/_/g, ' ')
+            .replace(/([a-z])([A-Z])/g, '$1 $2')
+            .split(' ')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+            .join(' ');
+    }
+
+    getSchemaFieldMapping() {
+        // Create mapping from original schema field names to display names
+        const mapping = {};
+        
+        if (this.originalSchemaContent) {
+            // Parse original schema content to get field names
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = this.originalSchemaContent;
+            
+            tempDiv.querySelectorAll('.extractor-field-row').forEach(fieldRow => {
+                const fieldNameSpan = fieldRow.querySelector('.field-name');
+                const fieldType = fieldRow.querySelector('.field-type-badge');
+                
+                if (fieldNameSpan && fieldType) {
+                    const originalName = fieldNameSpan.textContent.trim();
+                    const fieldTypeText = fieldType.textContent.trim().toLowerCase();
+                    
+                    // Map common field mappings
+                    if (originalName.toLowerCase().includes('invoice') && originalName.toLowerCase().includes('number')) {
+                        mapping['invoice_number'] = originalName;
+                    }
+                    if (originalName.toLowerCase().includes('date')) {
+                        mapping['invoice_date'] = originalName;
+                    }
+                    if (originalName.toLowerCase().includes('total') || originalName.toLowerCase().includes('amount')) {
+                        mapping['total_amount'] = originalName;
+                    }
+                    if (originalName.toLowerCase().includes('vendor') || originalName.toLowerCase().includes('supplier')) {
+                        mapping['vendor_name'] = originalName;
+                    }
+                    if (fieldTypeText === 'table' || originalName.toLowerCase().includes('item') || originalName.toLowerCase().includes('line')) {
+                        mapping['line_items'] = originalName;
+                    }
+                }
+            });
+        }
+        
+        return mapping;
+    }
+
+    addNavigationBar() {
+        // Remove existing bottom bar
+        const existingBottomBar = document.querySelector('.extractor-bottom-bar');
+        if (existingBottomBar) {
+            existingBottomBar.remove();
+        }
+        
+        // Create navigation bar
+        const navigationBar = document.createElement('div');
+        navigationBar.className = 'extractor-navigation-bar';
+        navigationBar.innerHTML = `
+            <button class="nav-btn nav-btn-secondary previous-btn">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M19 12H5"/>
+                    <path d="M12 19l-7-7 7-7"/>
+                </svg>
+                Previous
+            </button>
+            <button class="nav-btn nav-btn-primary next-btn">
+                Next
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M5 12h14"/>
+                    <path d="M12 5l7 7-7 7"/>
+                </svg>
+            </button>
+        `;
+        
+        // Add to schema panel
+        const schemaPanel = document.querySelector('.extractor-schema-panel');
+        if (schemaPanel) {
+            schemaPanel.appendChild(navigationBar);
+        }
+        
+        // Add event listeners for navigation buttons
+        const previousBtn = navigationBar.querySelector('.previous-btn');
+        const nextBtn = navigationBar.querySelector('.next-btn');
+        
+        if (previousBtn) {
+            previousBtn.addEventListener('click', () => this.handlePreviousStep());
+        }
+        
+        if (nextBtn) {
+            nextBtn.addEventListener('click', () => this.handleNextStep());
+        }
+    }
+
+    handlePreviousStep() {
+        // Return to schema editing mode
+        this.switchToEditingState();
+    }
+
+    handleNextStep() {
+        // Navigate to export UI (placeholder for now)
+        alert('Export functionality will be implemented in the next phase.\n\nFeatures will include:\n- Export to JSON\n- Export to Excel\n- Export to CSV');
+    }
+
+    switchToEditingState() {
+        // Restore the original schema panel content
+        const schemaPanel = document.querySelector('.extractor-schema-panel');
+        if (schemaPanel && this.originalSchemaContent) {
+            console.log('Restoring original schema content...');
+            schemaPanel.innerHTML = this.originalSchemaContent;
+            
+            // Wait for DOM to be ready, then re-initialize all event listeners
+            setTimeout(() => {
+                console.log('DOM restored, initializing event listeners...');
+                this.initializeAllEventListeners();
+            }, 100);
+        }
+        
+        // Clear stored extraction results
+        this.lastExtractionResults = null;
+    }
+
+    initializeAllEventListeners() {
+        // Comprehensive event listener setup for restored content
+        console.log('Initializing all event listeners...');
+        
+        // Log current DOM state
+        const allFields = document.querySelectorAll('.extractor-field-row');
+        const allActionButtons = document.querySelectorAll('.action-btn, .save-btn, .cancel-btn');
+        console.log(`Found ${allFields.length} fields and ${allActionButtons.length} action buttons`);
+        
+        this.setupCoreEventListeners();
+        this.setupFieldActionEvents();
+        this.setupTableFieldEvents();
+        this.setupRemoveColumnEvents();
+        this.setupRealTimeFieldEditing();
+        
+        console.log('All event listeners reinitialized after restoration');
+    }
+
+    restoreBottomBar() {
+        // Check if bottom bar already exists
+        const existingBottomBar = document.querySelector('.extractor-bottom-bar');
+        if (existingBottomBar) {
+            return; // Already exists
+        }
+        
+        // Create and add the original bottom bar
+        const bottomBar = document.createElement('div');
+        bottomBar.className = 'extractor-bottom-bar';
+        bottomBar.innerHTML = `
+            <button class="dashboard-btn dashboard-btn-primary">Extract Document</button>
+        `;
+        
+        // Add event listener for extract button
+        const extractBtn = bottomBar.querySelector('.dashboard-btn-primary');
+        if (extractBtn) {
+            extractBtn.addEventListener('click', (e) => this.handleExtract(e));
+        }
+        
+        // Add to schema panel
+        const schemaPanel = document.querySelector('.extractor-schema-panel');
+        if (schemaPanel) {
+            schemaPanel.appendChild(bottomBar);
+        }
+    }
+
+    clearExtractionResults() {
+        // Remove all field value displays
+        document.querySelectorAll('.field-value-display').forEach(element => {
+            element.remove();
+        });
+        
+        // Remove all table value displays
+        document.querySelectorAll('.table-value-display').forEach(element => {
+            element.remove();
+        });
+    }
+
+    populateFieldsWithResults(results) {
+        // Iterate through all field rows and populate them with extracted data
+        document.querySelectorAll('.extractor-field-row').forEach((fieldRow) => {
+            const fieldNameElement = fieldRow.querySelector('.field-name');
+            const fieldTypeElement = fieldRow.querySelector('.field-type-badge');
+            
+            if (!fieldNameElement || !fieldTypeElement) return;
+            
+            const fieldName = fieldNameElement.textContent.trim();
+            const fieldType = fieldTypeElement.textContent.trim();
+            
+            // Check if we have data for this field
+            if (results.hasOwnProperty(fieldName)) {
+                const value = results[fieldName];
+                
+                if (fieldType === 'table') {
+                    this.populateTableField(fieldRow, value);
+                } else {
+                    this.populateRegularField(fieldRow, value);
+                }
+            }
+        });
+    }
+
+    populateRegularField(fieldRow, value) {
+        // Find or create the field value display
+        let valueDisplay = fieldRow.querySelector('.field-value-display');
+        
+        if (!valueDisplay) {
+            // Create value display if it doesn't exist
+            valueDisplay = document.createElement('div');
+            valueDisplay.className = 'field-value-display';
+            
+            // Insert after the field description
+            const fieldDescription = fieldRow.querySelector('.field-description');
+            if (fieldDescription) {
+                fieldDescription.parentNode.insertBefore(valueDisplay, fieldDescription.nextSibling);
+            }
+        }
+        
+        // Set the value
+        if (value === null || value === undefined || value === '') {
+            valueDisplay.innerHTML = '<span class="no-value">No value extracted</span>';
+            valueDisplay.className = 'field-value-display no-value';
+        } else {
+            valueDisplay.textContent = String(value);
+            valueDisplay.className = 'field-value-display has-value';
+        }
+    }
+
+    populateTableField(fieldRow, tableData) {
+        // Find or create the table value display
+        let tableDisplay = fieldRow.querySelector('.table-value-display');
+        
+        if (!tableDisplay) {
+            // Create table display if it doesn't exist
+            tableDisplay = document.createElement('div');
+            tableDisplay.className = 'table-value-display';
+            
+            // Insert after the table subfields
+            const tableSubfields = fieldRow.querySelector('.table-subfields');
+            if (tableSubfields) {
+                tableSubfields.parentNode.insertBefore(tableDisplay, tableSubfields.nextSibling);
+            }
+        }
+        
+        // Populate table data
+        if (!Array.isArray(tableData) || tableData.length === 0) {
+            tableDisplay.innerHTML = '<div class="no-table-data">No table data extracted</div>';
+        } else {
+            const tableHtml = this.createTableHTML(tableData);
+            tableDisplay.innerHTML = tableHtml;
+        }
+        
+        tableDisplay.className = 'table-value-display has-data';
+    }
+
+    createTableHTML(tableData) {
+        if (!tableData || tableData.length === 0) {
+            return '<div class="no-table-data">No data available</div>';
+        }
+        
+        // Get headers from the first row
+        const headers = Object.keys(tableData[0]);
+        
+        let html = '<div class="extracted-table-wrapper">';
+        html += '<table class="extracted-table">';
+        
+        // Create header
+        html += '<thead><tr>';
+        headers.forEach(header => {
+            html += `<th>${this.formatHeaderName(header)}</th>`;
+        });
+        html += '</tr></thead>';
+        
+        // Create body
+        html += '<tbody>';
+        tableData.forEach(row => {
+            html += '<tr>';
+            headers.forEach(header => {
+                const value = row[header];
+                html += `<td>${value !== null && value !== undefined ? value : ''}</td>`;
+            });
+            html += '</tr>';
+        });
+        html += '</tbody>';
+        
+        html += '</table></div>';
+        return html;
+    }
+
+    formatHeaderName(header) {
+        // Convert camelCase or snake_case to readable format
+        return header
+            .replace(/_/g, ' ')
+            .replace(/([a-z])([A-Z])/g, '$1 $2')
+            .split(' ')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+            .join(' ');
+    }
+
+    showExtractionSuccess() {
+        // Show a success toast/notification
+        const notification = document.createElement('div');
+        notification.className = 'extraction-success-notification';
+        notification.innerHTML = `
+            <div class="notification-content">
+                <svg class="success-icon" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Document extracted successfully!</span>
+            </div>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        // Auto remove after 3 seconds
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        }, 3000);
     }
 
     createResultsPanel(results) {
@@ -1325,17 +1832,26 @@ class ExtractorManager {
     setupTableFieldEvents() {
         // Field type change handler
         document.querySelectorAll('.field-type-select').forEach(select => {
-            select.addEventListener('change', (e) => this.handleFieldTypeChange(e));
+            if (!select.hasAttribute('data-listener-attached')) {
+                select.addEventListener('change', (e) => this.handleFieldTypeChange(e));
+                select.setAttribute('data-listener-attached', 'true');
+            }
         });
 
         // Add column button handler
         document.querySelectorAll('.add-column-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => this.handleAddColumn(e));
+            if (!btn.hasAttribute('data-listener-attached')) {
+                btn.addEventListener('click', (e) => this.handleAddColumn(e));
+                btn.setAttribute('data-listener-attached', 'true');
+            }
         });
 
         // Add subfield button handler
         document.querySelectorAll('.add-subfield-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => this.handleAddSubfield(e));
+            if (!btn.hasAttribute('data-listener-attached')) {
+                btn.addEventListener('click', (e) => this.handleAddSubfield(e));
+                btn.setAttribute('data-listener-attached', 'true');
+            }
         });
 
         this.setupRemoveColumnEvents();
@@ -1629,11 +2145,17 @@ class ExtractorManager {
 
     setupRemoveColumnEvents() {
         document.querySelectorAll('.remove-column-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => this.handleRemoveColumn(e));
+            if (!btn.hasAttribute('data-listener-attached')) {
+                btn.addEventListener('click', (e) => this.handleRemoveColumn(e));
+                btn.setAttribute('data-listener-attached', 'true');
+            }
         });
 
         document.querySelectorAll('.delete-subfield-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => this.handleDeleteSubfield(e));
+            if (!btn.hasAttribute('data-listener-attached')) {
+                btn.addEventListener('click', (e) => this.handleDeleteSubfield(e));
+                btn.setAttribute('data-listener-attached', 'true');
+            }
         });
     }
 
@@ -1687,23 +2209,75 @@ class ExtractorManager {
     }
 
     reinitializeEventListeners() {
-        // Remove existing event listeners to prevent duplicates
-        const existingButtons = document.querySelectorAll('.remove-column-btn, .add-column-btn, .delete-subfield-btn');
-        existingButtons.forEach(btn => {
-            const newBtn = btn.cloneNode(true);
-            btn.parentNode.replaceChild(newBtn, btn);
-        });
-
-        // Setup fresh event listeners
-        this.setupRemoveColumnEvents();
+        // Clear any existing duplicate listeners by cloning and replacing elements
+        this.clearDuplicateListeners();
         
-        // Re-setup add column events
-        document.querySelectorAll('.add-column-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => this.handleAddColumn(e));
-        });
-
-        // Re-setup real-time field editing
+        // Re-setup all core event listeners
+        this.setupCoreEventListeners();
+        this.setupFieldActionEvents();
+        this.setupRemoveColumnEvents();
+        this.setupTableFieldEvents();
         this.setupRealTimeFieldEditing();
+    }
+
+    clearDuplicateListeners() {
+        // Clone and replace elements to remove all existing event listeners
+        const elementsToClone = [
+            '.extractor-add-field-btn',
+            '.extractor-bottom-bar .dashboard-btn-primary',
+            '.field-name-input',
+            '.field-desc-input'
+        ];
+
+        elementsToClone.forEach(selector => {
+            document.querySelectorAll(selector).forEach(element => {
+                if (element.parentNode) {
+                    const newElement = element.cloneNode(true);
+                    element.parentNode.replaceChild(newElement, element);
+                }
+            });
+        });
+    }
+
+    setupCoreEventListeners() {
+        // Add field button
+        const addFieldBtn = document.querySelector('.extractor-add-field-btn');
+        if (addFieldBtn && !addFieldBtn.hasAttribute('data-listener-attached')) {
+            addFieldBtn.addEventListener('click', (e) => this.handleAddField(e));
+            addFieldBtn.setAttribute('data-listener-attached', 'true');
+        }
+
+        // Extract button
+        const extractBtn = document.querySelector('.extractor-bottom-bar .dashboard-btn-primary');
+        if (extractBtn && !extractBtn.hasAttribute('data-listener-attached')) {
+            extractBtn.addEventListener('click', (e) => this.handleExtract(e));
+            extractBtn.setAttribute('data-listener-attached', 'true');
+        }
+    }
+
+    setupFieldActionEvents() {
+        // Field action buttons (edit, save, cancel, remove) 
+        const buttons = document.querySelectorAll('.action-btn, .save-btn, .cancel-btn');
+        console.log(`Setting up field action events for ${buttons.length} buttons`);
+        
+        buttons.forEach((btn, index) => {
+            // For restored content, always attach fresh listeners
+            // Use a more direct approach: remove existing listeners by cloning only for restored content
+            if (!btn.hasAttribute('data-listener-attached')) {
+                console.log(`Attaching listener to button ${index} (${btn.dataset.action})`);
+                
+                // Create a wrapper function to ensure 'this' context is preserved
+                const clickHandler = (e) => {
+                    console.log(`Button clicked: ${btn.dataset.action} for field ${btn.dataset.idx}`);
+                    this.handleFieldAction(e);
+                };
+                
+                btn.addEventListener('click', clickHandler);
+                btn.setAttribute('data-listener-attached', 'true');
+            } else {
+                console.log(`Button ${index} already has listener attached`);
+            }
+        });
     }
 
     applyThemeStyles() {

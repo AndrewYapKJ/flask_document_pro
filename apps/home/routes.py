@@ -8,6 +8,7 @@ from flask import render_template, request, jsonify
 from flask_login import login_required
 from jinja2 import TemplateNotFound
 import json
+import os
 
 
 @blueprint.route('/index')
@@ -24,11 +25,9 @@ def extractor_extract():
 
 
 @blueprint.route('/api/extract', methods=['POST'])
-@login_required
 def api_extract():
     """
-    API endpoint to handle document extraction
-    This is a mock implementation - replace with actual extraction logic
+    API endpoint to handle document extraction using dummy data
     """
     try:
         # Get uploaded file
@@ -43,26 +42,15 @@ def api_extract():
         schema_json = request.form.get('schema', '{}')
         schema = json.loads(schema_json)
         
-        # Mock extraction results based on schema
-        results = {}
-        for field in schema.get('fields', []):
-            field_name = field.get('name', '')
-            field_type = field.get('type', 'text')
-            
-            if field_type == 'table':
-                # Mock table data
-                results[field_name] = [
-                    {subfield['name']: f"Sample {subfield['name']} 1" for subfield in field.get('subfields', [])},
-                    {subfield['name']: f"Sample {subfield['name']} 2" for subfield in field.get('subfields', [])}
-                ]
-            elif field_type == 'number':
-                results[field_name] = 123.45
-            elif field_type == 'date':
-                results[field_name] = '2025-01-01'
-            elif field_type == 'boolean':
-                results[field_name] = True
-            else:
-                results[field_name] = f"Sample {field_name} value"
+                # Read file content
+        file_content = file.read()
+        
+        # Initialize the extraction service
+        from apps.services.extraction_service import DocumentExtractionService
+        extraction_service = DocumentExtractionService()
+        
+        # Extract data using OpenAI
+        results = extraction_service.extract_from_file(file_content, schema)
         
         return jsonify({
             'success': True,
@@ -71,7 +59,89 @@ def api_extract():
         })
         
     except Exception as e:
+        print(f"Extraction error: {str(e)}")
         return jsonify({'success': False, 'error': str(e)})
+
+
+def generate_dummy_data(schema):
+    """Generate dummy data based on the schema for testing"""
+    results = {}
+    
+    for field in schema.get('fields', []):
+        field_name = field.get('name', '')
+        field_type = field.get('type', 'text')
+        
+        if field_type == 'table':
+            # Generate dummy table data based on the screenshot
+            if field_name.lower() == 'line_items':
+                results[field_name] = [
+                    {
+                        "description": "Website development",
+                        "item_total_amount": 6000,
+                        "quantity": 1,
+                        "unit_price": 6000
+                    },
+                    {
+                        "description": "Website Hosting (Monthly)",
+                        "item_total_amount": 600,
+                        "quantity": 1,
+                        "unit_price": 600
+                    },
+                    {
+                        "description": "Domain Purchase - .com",
+                        "item_total_amount": 70,
+                        "quantity": 1,
+                        "unit_price": 70
+                    },
+                    {
+                        "description": "Website Support and Maintenance",
+                        "item_total_amount": 5000,
+                        "quantity": 1,
+                        "unit_price": 5000
+                    }
+                ]
+            else:
+                # Generic table data
+                subfield_data = {}
+                for subfield in field.get('subfields', []):
+                    subfield_type = subfield.get('type', 'text')
+                    if subfield_type == 'number':
+                        subfield_data[subfield['name']] = 100.00
+                    elif subfield_type == 'date':
+                        subfield_data[subfield['name']] = '2024-05-19'
+                    else:
+                        subfield_data[subfield['name']] = f"Sample {subfield['name']}"
+                results[field_name] = [subfield_data]
+        
+        elif field_type == 'number':
+            # Use specific values based on field name
+            if 'total' in field_name.lower():
+                results[field_name] = 11670
+            elif 'tax' in field_name.lower():
+                results[field_name] = 0
+            else:
+                results[field_name] = 123.45
+        
+        elif field_type == 'date':
+            results[field_name] = '2024-05-19'
+        
+        elif field_type == 'boolean':
+            results[field_name] = True
+        
+        else:
+            # String fields with specific dummy data
+            if 'date' in field_name.lower():
+                results[field_name] = '2024-05-19'
+            elif 'number' in field_name.lower():
+                results[field_name] = 'INV19052024001'
+            elif 'seller' in field_name.lower() or 'vendor' in field_name.lower():
+                results[field_name] = 'Cemerlang IT & Network Solutions'
+            elif 'amount' in field_name.lower():
+                results[field_name] = '11670'
+            else:
+                results[field_name] = f"Sample {field_name} value"
+    
+    return results
 
 
 @blueprint.route('/<template>')

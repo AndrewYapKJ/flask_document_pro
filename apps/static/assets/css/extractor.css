@@ -56,7 +56,7 @@
     background: #fafbfc;
     display: flex;
     flex-direction: column;
-    padding: 24px;
+    padding: 12px;
     gap: 20px;
 }
 
@@ -102,7 +102,7 @@
     border-radius: 12px;
     box-shadow: 0 4px 24px rgba(0,0,0,0.08);
     overflow: hidden;
-    margin-top: 20px; /* Add some spacing from upload card */
+    margin-top: 0px; /* Add some spacing from upload card */
 }
 
 .document-header {
@@ -1255,4 +1255,350 @@
         flex: 1;
         max-width: 100%;
     }
+}
+
+/* Field Value Display Styles */
+.field-value-display {
+    margin-top: 8px;
+    padding: 12px;
+    border-radius: 8px;
+    font-size: 14px;
+    line-height: 1.4;
+    border: 2px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.field-value-display.has-value {
+    background: #e8f5e8;
+    border-color: #4caf50;
+    color: #2e7d32;
+    font-weight: 500;
+}
+
+.field-value-display.no-value {
+    background: #fff3e0;
+    border-color: #ff9800;
+    color: #e65100;
+    font-style: italic;
+}
+
+.field-value-display .no-value {
+    color: #e65100;
+    font-style: italic;
+}
+
+/* Table Value Display Styles */
+.table-value-display {
+    margin-top: 12px;
+    padding: 16px;
+    background: #f8fffe;
+    border: 2px solid #4caf50;
+    border-radius: 12px;
+}
+
+.table-value-display.has-data {
+    background: #f8fffe;
+}
+
+.extracted-table-wrapper {
+    overflow-x: auto;
+    max-width: 100%;
+}
+
+.extracted-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.extracted-table th {
+    background: #4caf50;
+    color: white;
+    padding: 12px 8px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.extracted-table td {
+    padding: 10px 8px;
+    border-bottom: 1px solid #e0e0e0;
+    color: #333;
+    vertical-align: top;
+}
+
+.extracted-table tbody tr:nth-child(even) {
+    background: #f9f9f9;
+}
+
+.extracted-table tbody tr:hover {
+    background: #e8f5e8;
+}
+
+.no-table-data {
+    color: #e65100;
+    font-style: italic;
+    text-align: center;
+    padding: 20px;
+    background: #fff3e0;
+    border-radius: 8px;
+}
+
+/* Success Notification */
+.extraction-success-notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 10000;
+    background: #4caf50;
+    color: white;
+    padding: 16px 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+    animation: slideInRight 0.3s ease-out;
+}
+
+.notification-content {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 500;
+}
+
+.success-icon {
+    width: 20px;
+    height: 20px;
+    stroke: currentColor;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Extracted State Styles */
+.extractor-schema-panel.extracted-state .field-actions,
+.extractor-schema-panel.extracted-state .extractor-add-field-btn,
+.extractor-schema-panel.extracted-state .field-description,
+.extractor-schema-panel.extracted-state .subfield-description,
+.extractor-schema-panel.extracted-state .table-columns-title,
+.extractor-schema-panel.extracted-state .column-delete-btn,
+.extractor-schema-panel.extracted-state .add-column-btn,
+.extractor-schema-panel.extracted-state .add-subfield-btn {
+    display: none !important;
+}
+
+.extractor-schema-panel.extracted-state .extractor-bottom-bar {
+    display: none !important;
+}
+
+/* Navigation buttons for extracted state */
+.extractor-navigation-bar {
+    padding: 20px 24px;
+    border-top: 1px solid #e9ecef;
+    background: #ffffff;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+}
+
+.extractor-navigation-bar .nav-btn {
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-weight: 500;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.extractor-navigation-bar .nav-btn-secondary {
+    background: #ffffff;
+    color: #6c757d;
+    border-color: #dee2e6;
+}
+
+.extractor-navigation-bar .nav-btn-secondary:hover {
+    background: #f8f9fa;
+    color: #495057;
+    border-color: #adb5bd;
+}
+
+.extractor-navigation-bar .nav-btn-primary {
+    background: #007bff;
+    color: #ffffff;
+    border-color: #007bff;
+}
+
+.extractor-navigation-bar .nav-btn-primary:hover {
+    background: #0056b3;
+    border-color: #0056b3;
+}
+
+.extractor-navigation-bar .nav-btn svg {
+    width: 16px;
+    height: 16px;
+    stroke: currentColor;
+    fill: none;
+}
+
+/* Extracted state field styling adjustments */
+.extractor-schema-panel.extracted-state .field-header {
+    padding-bottom: 8px;
+}
+
+.extractor-schema-panel.extracted-state .extractor-field-row {
+    margin-bottom: 20px;
+}
+
+.extractor-schema-panel.extracted-state .table-subfields {
+    margin-top: 12px;
+}
+
+.extractor-schema-panel.extracted-state .subfield-row {
+    padding: 8px 0;
+    justify-content: flex-start;
+}
+
+/* Hide table column management in extracted state */
+.extractor-schema-panel.extracted-state .subfields-container .subfield-wrapper:hover .column-delete-btn {
+    display: none !important;
+}
+
+/* Extraction Results UI Styles */
+.extraction-results-card {
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+    padding: 24px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.extraction-title {
+    font-size: 24px;
+    font-weight: 600;
+    color: #1a202c;
+    margin-bottom: 8px;
+}
+
+.extraction-subtitle {
+    font-size: 14px;
+    color: #6c757d;
+    margin-bottom: 24px;
+}
+
+.extraction-results-container {
+    flex: 1;
+    overflow-y: auto;
+    margin-bottom: 24px;
+    padding-right: 8px;
+}
+
+/* Individual field result styles */
+.extraction-field-result {
+    margin-bottom: 20px;
+    padding: 16px;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+    background: #f8f9fa;
+}
+
+.extraction-field-result.has-value {
+    background: #e8f5e8;
+    border-color: #c3e6c3;
+}
+
+.extraction-field-result.no-value {
+    background: #ffeaa7;
+    border-color: #fdcb6e;
+}
+
+.field-result-header {
+    margin-bottom: 8px;
+}
+
+.field-result-name {
+    font-weight: 600;
+    color: #2d3748;
+    font-size: 14px;
+}
+
+.field-result-value {
+    color: #4a5568;
+    font-size: 14px;
+    line-height: 1.5;
+    word-break: break-word;
+}
+
+.extraction-field-result.no-value .field-result-value {
+    color: #975a16;
+    font-style: italic;
+}
+
+.extraction-field-result.has-value .field-result-value {
+    color: #2f855a;
+    font-weight: 500;
+}
+
+/* Table result specific styles */
+.extraction-field-result.table-result {
+    background: #ffffff;
+    border-color: #007bff;
+}
+
+.field-result-table {
+    margin-top: 12px;
+}
+
+.field-result-table .extracted-table-wrapper {
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid #dee2e6;
+}
+
+.field-result-table .extracted-table {
+    width: 100%;
+    margin: 0;
+}
+
+.field-result-table .extracted-table th {
+    background: #f8f9fa;
+    border-bottom: 2px solid #dee2e6;
+    font-weight: 600;
+    font-size: 13px;
+    color: #495057;
+    padding: 12px 8px;
+}
+
+.field-result-table .extracted-table td {
+    padding: 10px 8px;
+    font-size: 13px;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.field-result-table .extracted-table tbody tr:nth-child(even) {
+    background: #f8f9fa;
+}
+
+.field-result-table .extracted-table tbody tr:hover {
+    background: #e3f2fd;
 }

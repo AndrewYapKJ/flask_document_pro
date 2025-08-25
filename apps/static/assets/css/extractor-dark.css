@@ -474,3 +474,167 @@ body.dark .document-image:hover {
         border-bottom: 1px solid #334756;
     }
 }
+
+/* Field Value Display Styles - Dark Mode */
+body.dark .field-value-display.has-value {
+    background: #1a3a2e;
+    border-color: #4caf50;
+    color: #81c784;
+}
+
+body.dark .field-value-display.no-value {
+    background: #3e2723;
+    border-color: #ff9800;
+    color: #ffb74d;
+}
+
+body.dark .field-value-display .no-value {
+    color: #ffb74d;
+}
+
+/* Table Value Display Styles - Dark Mode */
+body.dark .table-value-display {
+    background: #1a3a2e;
+    border-color: #4caf50;
+}
+
+body.dark .table-value-display.has-data {
+    background: #1a3a2e;
+}
+
+body.dark .extracted-table {
+    background: #23262f;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+body.dark .extracted-table th {
+    background: #4caf50;
+    color: white;
+}
+
+body.dark .extracted-table td {
+    border-bottom: 1px solid #4a5568;
+    color: #e2e2e2;
+}
+
+body.dark .extracted-table tbody tr:nth-child(even) {
+    background: #2d3748;
+}
+
+body.dark .extracted-table tbody tr:hover {
+    background: #1a3a2e;
+}
+
+body.dark .no-table-data {
+    color: #ffb74d;
+    background: #3e2723;
+}
+
+/* Success Notification - Dark Mode */
+body.dark .extraction-success-notification {
+    background: #4caf50;
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+}
+
+/* Navigation Bar - Dark Mode */
+body.dark .extractor-navigation-bar {
+    background: #23262f;
+    border-top: 1px solid #334756;
+}
+
+body.dark .extractor-navigation-bar .nav-btn-secondary {
+    background: #23262f;
+    color: #a0aec0;
+    border-color: #334756;
+}
+
+body.dark .extractor-navigation-bar .nav-btn-secondary:hover {
+    background: #2d3748;
+    color: #e2e2e2;
+    border-color: #4a5568;
+}
+
+body.dark .extractor-navigation-bar .nav-btn-primary {
+    background: #007bff;
+    color: #ffffff;
+    border-color: #007bff;
+}
+
+body.dark .extractor-navigation-bar .nav-btn-primary:hover {
+    background: #0056b3;
+    border-color: #0056b3;
+}
+
+/* Extraction Results UI - Dark Mode */
+body.dark .extraction-results-card {
+    background: #23262f;
+    color: #e2e2e2;
+    box-shadow: 0 4px 24px rgba(55,125,255,0.18);
+}
+
+body.dark .extraction-title {
+    color: #e2e2e2;
+}
+
+body.dark .extraction-subtitle {
+    color: #a0aec0;
+}
+
+body.dark .extraction-field-result {
+    background: #2d3748;
+    border-color: #4a5568;
+}
+
+body.dark .extraction-field-result.has-value {
+    background: #22543d;
+    border-color: #38a169;
+}
+
+body.dark .extraction-field-result.no-value {
+    background: #744210;
+    border-color: #d69e2e;
+}
+
+body.dark .field-result-name {
+    color: #e2e2e2;
+}
+
+body.dark .field-result-value {
+    color: #cbd5e0;
+}
+
+body.dark .extraction-field-result.no-value .field-result-value {
+    color: #fbb040;
+}
+
+body.dark .extraction-field-result.has-value .field-result-value {
+    color: #68d391;
+}
+
+body.dark .extraction-field-result.table-result {
+    background: #2d3748;
+    border-color: #007bff;
+}
+
+body.dark .field-result-table .extracted-table-wrapper {
+    border-color: #4a5568;
+}
+
+body.dark .field-result-table .extracted-table th {
+    background: #1a202c;
+    border-bottom-color: #4a5568;
+    color: #e2e2e2;
+}
+
+body.dark .field-result-table .extracted-table td {
+    border-bottom-color: #4a5568;
+    color: #cbd5e0;
+}
+
+body.dark .field-result-table .extracted-table tbody tr:nth-child(even) {
+    background: #2d3748;
+}
+
+body.dark .field-result-table .extracted-table tbody tr:hover {
+    background: #1a3a2e;
+}

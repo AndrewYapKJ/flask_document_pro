@@ -409,7 +409,7 @@ class ExtractorManager {
         });
 
         // Remove any newly added table columns that weren't saved
-        // (columns without originalValue data are newly added during this edit session)
+        // (columns withouth originalValue data are newly added during this edit session)
         const newlyAddedColumns = Array.from(tableColumns).filter(columnRow => {
             const nameInput = columnRow.querySelector('.column-name-input');
             return nameInput && nameInput.dataset.originalValue === undefined;
@@ -1254,14 +1254,9 @@ class ExtractorManager {
     }
 
     renderExtractionResults(results) {
-        // Store the extraction results for use in the new UI
-        this.lastExtractionResults = results;
-        
-        // Switch to extracted state with new UI
-        this.switchToExtractedState();
-        
-        // Show success message
-        this.showExtractionSuccess();
+    // Use new UI logic for extraction results
+    this.lastExtractionResults = results;
+    this.switchToExtractedState();
     }
 
     switchToExtractedState() {
@@ -1746,14 +1741,28 @@ class ExtractorManager {
                 <div class="results-content">
                     ${this.renderResultsContent(results)}
                 </div>
+                <div class="results-actions-bar">
+                    <button class="dashboard-btn dashboard-btn-outline results-back-btn">Back</button>
+                    <button class="dashboard-btn dashboard-btn-primary results-next-btn" disabled>Next</button>
+                </div>
             </div>
         `;
-        
         // Add download functionality
         const downloadBtn = panel.querySelector('.download-btn');
         downloadBtn.addEventListener('click', () => this.downloadResults(results));
-        
+        // Add Back button functionality
+        const backBtn = panel.querySelector('.results-back-btn');
+        backBtn.addEventListener('click', () => this.handleResultsBack());
+        // Next button reserved for export
         return panel;
+    }
+    handleResultsBack() {
+        // Remove results panel and show schema panel for editing
+        const resultsPanel = document.querySelector('.extractor-results-panel');
+        if (resultsPanel) resultsPanel.remove();
+        // Optionally scroll to schema panel
+        const schemaPanel = document.querySelector('.extractor-schema-panel');
+        if (schemaPanel) schemaPanel.scrollIntoView({ behavior: 'smooth' });
     }
 
     renderResultsContent(results) {
@@ -1763,9 +1772,9 @@ class ExtractorManager {
             html += `
                 <div class="result-field">
                     <div class="result-field-header">
-                        <strong>${fieldName}:</strong>
+                        <strong>${fieldName}</strong>
                     </div>
-                    <div class="result-field-value">
+                    <div class="result-field-value extracted-value">
                         ${this.formatResultValue(value)}
                     </div>
                 </div>
@@ -1776,35 +1785,34 @@ class ExtractorManager {
     }
 
     formatResultValue(value) {
-        if (Array.isArray(value)) {
-            // Handle table data
-            if (value.length === 0) return '<em>No data</em>';
-            
-            let tableHtml = '<table class="results-table"><thead><tr>';
-            
-            // Create headers from first row keys
-            const headers = Object.keys(value[0] || {});
-            headers.forEach(header => {
-                tableHtml += `<th>${header}</th>`;
+        // Table/line item: render as table if array of objects
+        if (Array.isArray(value) && value.length > 0 && typeof value[0] === 'object') {
+            const headers = Object.keys(value[0]);
+            let table = '<table class="results-table"><thead><tr>';
+            headers.forEach(h => {
+                table += `<th>${h}</th>`;
             });
-            tableHtml += '</tr></thead><tbody>';
-            
-            // Add data rows
+            table += '</tr></thead><tbody>';
             value.forEach(row => {
-                tableHtml += '<tr>';
-                headers.forEach(header => {
-                    tableHtml += `<td>${row[header] || ''}</td>`;
+                table += '<tr>';
+                headers.forEach(h => {
+                    table += `<td>${row[h] ?? ''}</td>`;
                 });
-                tableHtml += '</tr>';
+                table += '</tr>';
             });
-            
-            tableHtml += '</tbody></table>';
-            return tableHtml;
-        } else if (value === null || value === undefined) {
-            return '<em>Not found</em>';
-        } else {
-            return String(value);
+            table += '</tbody></table>';
+            return table;
         }
+        // Simple value or array
+        if (Array.isArray(value)) {
+            return value.map(v => `<span>${v}</span>`).join(', ');
+        }
+        // Null/undefined fallback
+        if (value === null || value === undefined) {
+            return '<span style="color:#888">(no value)</span>';
+        }
+        // String/number
+        return `<span>${value}</span>`;
     }
 
     downloadResults(results) {
@@ -2013,7 +2021,7 @@ class ExtractorManager {
 
     handleAddSubfield(e) {
         e.preventDefault();
-        const subfieldsContainer = e.target.closest('.subfields-container');
+               const subfieldsContainer = e.target.closest('.subfields-container');
         const fieldRow = e.target.closest('.extractor-field-row');
         const tableColumns = fieldRow.querySelector('.table-columns');
 

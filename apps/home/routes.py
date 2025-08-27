@@ -24,6 +24,144 @@ def extractor_extract():
     return render_template('home/extractor-extract.html', segment='extractor-extract')
 
 
+@blueprint.route('/index/extractor-viewport')
+@login_required  
+def extractor_extract_viewport():
+    return render_template('home/extractor-viewport.html', segment='extractor-viewport')
+
+
+@blueprint.route('/create_bot', methods=['POST'])
+def create_bot():
+    """
+    Handle PDF upload and page rendering for bot creation
+    """
+    try:
+        # Get uploaded file
+        if 'file' not in request.files:
+            return jsonify({'error': 'No file uploaded'})
+        
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'error': 'No file selected'})
+        
+        # Get page number (default to 0)
+        page_num = int(request.form.get('page_num', 0))
+        
+        # Save file temporarily
+        import tempfile
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp_file:
+            file.save(tmp_file.name)
+            
+            # Convert PDF page to image
+            from apps.services.pdf_service import PDFService
+            pdf_service = PDFService()
+            
+            result = pdf_service.convert_page_to_image(tmp_file.name, page_num)
+            
+            # Clean up temp file
+            os.unlink(tmp_file.name)
+            
+            if result.get('error'):
+                return jsonify({'error': result['error']})
+            
+            return jsonify({
+                'image_url': result['image_url'],
+                'page_count': result['page_count'],
+                'pdf_width': result['pdf_width'],
+                'pdf_height': result['pdf_height'],
+                'target_width': result.get('target_width', 595),
+                'target_height': result.get('target_height', 842),
+                'paste_x': result.get('paste_x', 0),
+                'paste_y': result.get('paste_y', 0)
+            })
+            
+    except Exception as e:
+        print(f"Create bot error: {str(e)}")
+        return jsonify({'error': str(e)})
+
+
+@blueprint.route('/extract_document', methods=['POST'])
+def extract_document():
+    """
+    Handle document extraction with viewports and schema
+    """
+    try:
+        # Get uploaded file
+        if 'file' not in request.files:
+            return jsonify({'success': False, 'error': 'No file uploaded'})
+        
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'success': False, 'error': 'No file selected'})
+        
+        # Get schema and viewports
+        schema_json = request.form.get('schema', '[]')
+        viewports_json = request.form.get('viewports', '[]')
+        
+        schema = json.loads(schema_json)
+        viewports = json.loads(viewports_json)
+        
+        # Read file content
+        file_content = file.read()
+        
+        # Initialize the extraction service
+        from apps.services.extraction_service import DocumentExtractionService
+        extraction_service = DocumentExtractionService()
+        
+        # Convert schema format for extraction service
+        schema_dict = {
+            'fields': schema
+        }
+        
+        # Extract data using OpenAI
+        results = extraction_service.extract_from_file(file_content, schema_dict)
+        
+        return jsonify({
+            'success': True,
+            'data': results,
+            'filename': file.filename,
+            'viewports': viewports
+        })
+        
+    except Exception as e:
+        print(f"Document extraction error: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)})
+
+
+@blueprint.route('/extract_text', methods=['POST'])
+def extract_text():
+    """
+    Extract text from specific viewport coordinates (for legacy support)
+    """
+    try:
+        # Get uploaded file
+        if 'file' not in request.files:
+            return jsonify({'error': 'No file uploaded'})
+        
+        file = request.files['file']
+        page_num = int(request.form.get('page_num', 0))
+        x0 = float(request.form.get('x0', 0))
+        y0 = float(request.form.get('y0', 0))
+        x1 = float(request.form.get('x1', 100))
+        y1 = float(request.form.get('y1', 100))
+        
+        # For now, return dummy text extraction
+        # In a real implementation, you would extract text from the specific coordinates
+        dummy_texts = [
+            "Invoice #INV-2024-001",
+            "Amount: $1,234.56",
+            "Date: 2024-05-19",
+            "ABC Company Ltd.",
+            "Website Development Services"
+        ]
+        
+        import random
+        return jsonify({'text': random.choice(dummy_texts)})
+        
+    except Exception as e:
+        return jsonify({'error': str(e)})
+
+
 @blueprint.route('/api/extract', methods=['POST'])
 def api_extract():
     """

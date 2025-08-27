@@ -1,3 +1,10 @@
+body.dark .extraction-field-result.no-value .field-result-value {
+    background: #665c00;
+    border: 1.5px solid #ffd600;
+    color: #fffde7;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(255,214,0,0.18);
+}
 body.dark .extraction-results-card {
     background: #23262f;
     color: #e2e2e2;
@@ -21,9 +28,9 @@ body.dark .field-result-value {
     color: #e6fbe6;
 }
 body.dark .extraction-field-result.no-value .field-result-value {
-    background: #23262f;
-    border: 1.5px solid #4a5568;
-    color: #888;
+    background: #665c00;
+    border: 1.5px solid #ffd600;
+    color: #fffde7;
 }
 body.dark .extraction-field-result.table-result th {
     background: #334756;

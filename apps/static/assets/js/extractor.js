@@ -1358,7 +1358,7 @@ class ExtractorManager {
 
     createFieldResultHTML(fieldName, value, schemaMapping = {}) {
         // Use schema field name if available, otherwise format the fieldName
-        const displayName = schemaMapping[fieldName] || this.formatFieldName(fieldName);
+        const displayName = fieldName;
         const displayValue = value !== null && value !== undefined && value !== '' 
             ? String(value) 
             : 'No value extracted';
@@ -1377,7 +1377,7 @@ class ExtractorManager {
 
     createTableResultHTML(fieldName, tableData, schemaMapping = {}) {
         // Use schema field name if available, otherwise format the fieldName
-        const displayName = schemaMapping[fieldName] || this.formatFieldName(fieldName);
+        const displayName = fieldName;
         
         if (!Array.isArray(tableData) || tableData.length === 0) {
             return `

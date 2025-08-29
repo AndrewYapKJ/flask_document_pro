@@ -377,6 +377,14 @@ class ExtractorMigration {
         console.log('Setting up canvas events...');
         this.state.ctx = this.elements.canvas.getContext('2d');
 
+        // Ensure methods are bound before adding event listeners
+        this.handleMouseDown = this.handleMouseDown.bind(this);
+        this.handleMouseMove = this.handleMouseMove.bind(this);
+        this.handleMouseUp = this.handleMouseUp.bind(this);
+        this.handleCanvasClick = this.handleCanvasClick.bind(this);
+        this.handleDocumentMouseMove = this.handleMouseMove.bind(this);
+        this.handleDocumentMouseUp = this.handleMouseUp.bind(this);
+
         // Remove any existing event listeners first
         this.elements.canvas.removeEventListener('mousedown', this.handleMouseDown);
         this.elements.canvas.removeEventListener('mousemove', this.handleMouseMove);
@@ -388,27 +396,19 @@ class ExtractorMigration {
         document.removeEventListener('mouseup', this.handleDocumentMouseUp);
 
         // Add canvas event listeners
-        this.elements.canvas.addEventListener('mousedown', this.handleMouseDown.bind(this));
-        this.elements.canvas.addEventListener('mousemove', this.handleMouseMove.bind(this));
-        this.elements.canvas.addEventListener('mouseup', this.handleMouseUp.bind(this));
-        this.elements.canvas.addEventListener('click', this.handleCanvasClick.bind(this));
+        this.elements.canvas.addEventListener('mousedown', this.handleMouseDown);
+        this.elements.canvas.addEventListener('mousemove', this.handleMouseMove);
+        this.elements.canvas.addEventListener('mouseup', this.handleMouseUp);
+        this.elements.canvas.addEventListener('click', this.handleCanvasClick);
 
         // Add document event listeners for smooth dragging outside canvas
-        this.handleDocumentMouseMove = this.handleMouseMove.bind(this);
-        this.handleDocumentMouseUp = this.handleMouseUp.bind(this);
         document.addEventListener('mousemove', this.handleDocumentMouseMove);
         document.addEventListener('mouseup', this.handleDocumentMouseUp);
+    }
 
-        console.log('Canvas events successfully attached');
-
-        // Scroll events
-        const container = this.elements.canvas.parentElement;
-        if (container) {
-            container.addEventListener('scroll', () => {
-                this.state.scrollOffset = container.scrollTop;
-                this.renderSelections();
-            });
-        }
+    handleCanvasClick(e) {
+        console.log('Canvas clicked:', e);
+        // Placeholder for canvas click handling logic
     }
 
     async handleFileUpload() {
@@ -462,6 +462,12 @@ class ExtractorMigration {
 
     showDocumentPreview() {
         console.log('Showing document preview...');
+        // Ensure canvasContainer is initialized
+        if (!this.elements.canvasContainer) {
+            console.error('Canvas container is not initialized. Calling setupCanvas...');
+            this.setupCanvas();
+        }
+
         // Hide upload card, show preview
         this.elements.uploadCard.style.display = 'none';
         this.elements.documentPreview.style.display = 'block';
@@ -479,13 +485,10 @@ class ExtractorMigration {
         // Add canvas to document content
         this.elements.documentContent.innerHTML = '';
         this.elements.documentContent.appendChild(this.elements.canvasContainer);
-        // Remove viewport list for now
-        // this.elements.documentContent.appendChild(this.elements.viewportsList);
-        
         console.log('Canvas container added to document content');
         console.log('Canvas dimensions:', this.elements.canvas.width, 'x', this.elements.canvas.height);
         console.log('Canvas context available:', !!this.state.ctx);
-        
+
         // Now that canvas is in DOM, set up canvas events
         this.setupCanvasEvents();
         console.log('Canvas events set up after adding to DOM');
@@ -585,6 +588,11 @@ class ExtractorMigration {
         } finally {
             this.showLoading(false);
         }
+    }
+
+    showLoading(message = 'Loading...') {
+        console.log('Show loading overlay:', message);
+        // Placeholder: Implement loading overlay logic if needed
     }
 
     updateCanvasSize() {
@@ -748,267 +756,137 @@ class ExtractorMigration {
     }
 
     handleMouseUp(e) {
-        if (!this.state.isSelecting || !this.state.selectionEnabled) {
-            return;
-        }
+        if (!this.state.isSelecting || !this.state.selectionEnabled) return;
         e.preventDefault();
         this.state.isSelecting = false;
         this.elements.canvas.style.cursor = 'crosshair';
         document.body.style.cursor = 'default';
+
         const { startX, startY, endX, endY } = this.state.currentSelection;
         const width = Math.abs(endX - startX);
         const height = Math.abs(endY - startY);
         const minWidth = 20;
         const minHeight = 10;
+
         if (width > minWidth && height > minHeight) {
-            const label = prompt('Enter a label for this viewport:');
-            if (label && label.trim()) {
-                this.addSelection({
-                    startX: Math.min(startX, endX),
-                    startY: Math.min(startY, endY),
-                    endX: Math.max(startX, endX),
-                    endY: Math.max(startY, endY),
-                    label: label.trim(),
-                    color: this.getRandomColor(),
-                    extractedText: ''
-                });
-                // Render schema fields after adding selection
-                this.renderSchemaFields();
+            const label = prompt('Enter label for the selection:');
+            if (label) {
+                const selection = {
+                    startX,
+                    startY,
+                    endX,
+                    endY,
+                    label,
+                    color: this.getRandomColor()
+                };
+                this.addSelection(selection);
             }
         }
+
         this.state.currentSelection = {};
         this.renderSelections();
     }
 
-    handleCanvasClick(e) {
-        if (!this.state.selectionEnabled) return;
-
-        const rect = this.elements.canvas.getBoundingClientRect();
-        const scrollTop = this.state.scrollOffset;
-        const clickX = e.clientX - rect.left;
-        const clickY = e.clientY - rect.top + scrollTop;
-
-        // Check for delete button clicks
-        for (let i = this.state.selections.length - 1; i >= 0; i--) {
-            const sel = this.state.selections[i];
-            if (sel.deleteButton) {
-                const { x, y, size } = sel.deleteButton;
-                const yOffset = sel.pageNum * this.state.target_height;
-                const adjustedY = y + yOffset - scrollTop;
-                
-                if (clickX >= x && clickX <= x + size && 
-                    clickY >= adjustedY && clickY <= adjustedY + size) {
-                    this.removeSelection(i);
-                    break;
-                }
-            }
-        }
-    }
-
-    handleKeydown(e) {
-        if (e.ctrlKey || e.metaKey) {
-            if (e.key === 'z') {
-                e.preventDefault();
-                this.undo();
-            } else if (e.key === 'y') {
-                e.preventDefault();
-                this.redo();
-            }
-        }
-    }
-
-    // Selection management
     addSelection(selection) {
+        const schemaCard = document.querySelector('.extractor-schema-card');
+        const addFieldBtn = document.querySelector('.extractor-add-field-btn');
+
+        if (!schemaCard || !addFieldBtn) {
+            console.error('Schema card or add field button not found');
+            return;
+        }
+
+        const existingFields = document.querySelectorAll('.extractor-field-row');
+        const nextIndex = existingFields.length + 1;
+
+        const fieldName = selection.label || `field_${nextIndex}`;
+
+        const newFieldHtml = `
+            <div class="extractor-field-row" id="field-${nextIndex}">
+                <div class="field-header">
+                    <div>
+                        <span class="field-name">${fieldName}</span>
+                        <span class="field-type-badge text">text</span>
+                    </div>
+                    <div class="field-actions">
+                        <button class="action-btn edit-btn" data-idx="${nextIndex}" data-action="edit" title="Edit Field">
+                            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 20h9"/>
+                                <path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/>
+                            </svg>
+                        </button>
+                        <button class="action-btn delete delete-btn" data-idx="${nextIndex}" data-action="delete" title="Delete Field">
+                            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M3 6h18"/>
+                                <path d="M8 6v12a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2V6"/>
+                                <path d="M10 11v6"/>
+                                <path d="M14 11v6"/>
+                                <path d="M5 6V4a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v2"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="field-description">Description for ${fieldName}</div>
+            </div>
+        `;
+
+        addFieldBtn.insertAdjacentHTML('beforebegin', newFieldHtml);
         this.state.selections.push(selection);
-        this.saveHistory();
-        this.renderSelections();
     }
 
-    removeSelection(index) {
-        if (confirm('Are you sure you want to delete this viewport?')) {
-            this.state.selections.splice(index, 1);
-            this.saveHistory();
-            this.renderSelections();
-        }
-    }
-
-    saveHistory() {
-        this.state.history = this.state.history.slice(0, this.state.historyIndex + 1);
-        this.state.history.push(JSON.stringify(this.state.selections));
-        this.state.historyIndex++;
-    }
-
-    undo() {
-        if (this.state.historyIndex > 0) {
-            this.state.historyIndex--;
-            this.state.selections = JSON.parse(this.state.history[this.state.historyIndex]);
-            this.renderSelections();
-        }
-    }
-
-    redo() {
-        if (this.state.historyIndex < this.state.history.length - 1) {
-            this.state.historyIndex++;
-            this.state.selections = JSON.parse(this.state.history[this.state.historyIndex]);
-            this.renderSelections();
-        }
-    }
-
-    // Document extraction
-    async extractDocument() {
-        if (!this.state.currentFile) {
-            this.showToast('No document loaded', 'error');
-            return;
-        }
-
-        if (this.state.selections.length === 0) {
-            this.showToast('No viewports selected', 'error');
-            return;
-        }
-
-        this.showLoading(true);
-
-        try {
-            // Get schema fields from the current page
-            const schemaFields = this.getSchemaFields();
-            
-            // Prepare extraction data
-            const extractionData = {
-                file: this.state.currentFile,
-                viewports: this.state.selections.map(sel => ({
-                    label: sel.label,
-                    startX: sel.startX,
-                    startY: sel.startY,
-                    endX: sel.endX,
-                    endY: sel.endY,
-                    pageNum: sel.pageNum
-                })),
-                schema: schemaFields
-            };
-
-            // Call extraction API
-            const result = await this.callExtractionAPI(extractionData);
-            
-            if (result.success) {
-                this.displayExtractionResults(result.data);
-                this.showToast('Document extracted successfully');
-            } else {
-                this.showToast('Extraction failed: ' + result.error, 'error');
-            }
-
-        } catch (error) {
-            this.showToast('Extraction error: ' + error.message, 'error');
-            console.error('Extraction error:', error);
-        } finally {
-            this.showLoading(false);
-        }
-    }
-
-    getSchemaFields() {
-        // Extract schema fields from the current page UI
-        const fields = [];
-        document.querySelectorAll('.extractor-field-row').forEach(row => {
-            const fieldName = row.querySelector('.field-name')?.textContent?.trim();
-            const fieldType = row.querySelector('.field-type-badge')?.textContent?.trim();
-            const fieldDesc = row.querySelector('.field-description')?.textContent?.trim();
-            
-            if (fieldName && fieldType) {
-                const field = {
-                    name: fieldName,
-                    type: fieldType,
-                    description: fieldDesc || ''
-                };
-
-                // Handle table fields with subfields
-                if (fieldType === 'table') {
-                    const subfields = [];
-                    row.querySelectorAll('.subfield-wrapper').forEach(subRow => {
-                        const subName = subRow.querySelector('.subfield-name')?.textContent?.trim();
-                        const subType = subRow.querySelector('.subfield-type')?.textContent?.trim();
-                        const subDesc = subRow.querySelector('.subfield-description')?.textContent?.trim();
-                        
-                        if (subName && subType) {
-                            subfields.push({
-                                name: subName,
-                                type: subType,
-                                description: subDesc || ''
-                            });
-                        }
-                    });
-                    field.subfields = subfields;
-                }
-
-                fields.push(field);
-            }
+    renderSelections() {
+        if (!this.elements.canvas || !this.state.ctx) return;
+        this.state.ctx.clearRect(0, 0, this.elements.canvas.width, this.elements.canvas.height);
+        const dpr = window.devicePixelRatio || 1;
+        this.state.images.forEach((img, index) => {
+            const yOffset = index * this.state.target_height * dpr;
+            this.state.ctx.drawImage(img, 0, yOffset, this.state.target_width * dpr, this.state.target_height * dpr);
         });
-
-        return fields;
-    }
-
-    async callExtractionAPI(data) {
-        const formData = new FormData();
-        formData.append('file', data.file);
-        formData.append('schema', JSON.stringify(data.schema));
-        formData.append('viewports', JSON.stringify(data.viewports));
-
-        const response = await fetch('/extract_document', {
-            method: 'POST',
-            body: formData
+        this.state.selections.forEach((sel, index) => {
+            this.renderSelection(sel, index);
         });
-
-        return await response.json();
-    }
-
-    displayExtractionResults(results) {
-        // This would integrate with the existing schema panel to show results
-        // For now, log the results
-        console.log('Extraction results:', results);
-        
-        // Update the schema panel with extracted values
-        this.updateSchemaWithResults(results);
-    }
-
-    updateSchemaWithResults(results) {
-        // Update field values in the schema panel
-        Object.keys(results).forEach(fieldName => {
-            const fieldRow = document.querySelector(`[data-field-name="${fieldName}"]`);
-            if (fieldRow) {
-                // Add extracted value display
-                let valueDisplay = fieldRow.querySelector('.extracted-value');
-                if (!valueDisplay) {
-                    valueDisplay = document.createElement('div');
-                    valueDisplay.className = 'extracted-value';
-                    valueDisplay.style.cssText = `
-                        margin-top: 8px;
-                        padding: 8px;
-                        background: #f0f9ff;
-                        border: 1px solid #bae6fd;
-                        border-radius: 4px;
-                        font-size: 14px;
-                    `;
-                    fieldRow.appendChild(valueDisplay);
-                }
-                
-                valueDisplay.innerHTML = `
-                    <strong>Extracted:</strong> ${JSON.stringify(results[fieldName], null, 2)}
-                `;
-            }
-        });
-    }
-
-    // Utility methods
-    removeFile() {
-        this.state.currentFile = null;
-        this.state.images = [];
-        this.state.selections = [];
-        this.state.pageCount = 0;
-        // Clear schema panel
-        this.renderSchemaFields();
-        this.elements.documentPreview.style.display = 'none';
-        this.elements.uploadCard.style.display = 'block';
-        if (this.elements.canvas) {
-            this.state.ctx.clearRect(0, 0, this.elements.canvas.width, this.elements.canvas.height);
+        if (this.state.isSelecting && this.state.selectionEnabled) {
+            this.renderCurrentSelection();
         }
+    }
+
+    renderSelection(sel, index) {
+        const x = sel.startX;
+        const y = sel.startY;
+        const width = sel.endX - sel.startX;
+        const height = sel.endY - sel.startY;
+        this.state.ctx.fillStyle = `rgba(${sel.color.r}, ${sel.color.g}, ${sel.color.b}, 0.2)`;
+        this.state.ctx.strokeStyle = `rgba(${sel.color.r}, ${sel.color.g}, ${sel.color.b}, 1)`;
+        this.state.ctx.lineWidth = 2;
+        this.state.ctx.fillRect(x, y, width, height);
+        this.state.ctx.strokeRect(x, y, width, height);
+        this.state.ctx.font = 'bold 14px Arial';
+        this.state.ctx.fillStyle = `rgba(${sel.color.r}, ${sel.color.g}, ${sel.color.b}, 1)`;
+        this.state.ctx.fillText(sel.label, x, y - 5);
+    }
+
+    renderCurrentSelection() {
+        const { startX, startY, endX, endY } = this.state.currentSelection;
+        if (startX === undefined || startY === undefined) return;
+        const x = startX;
+        const y = startY;
+        const width = (endX || startX) - startX;
+        const height = (endY || startY) - startY;
+        this.state.ctx.strokeStyle = '#22c55e';
+        this.state.ctx.fillStyle = 'rgba(34, 197, 94, 0.1)';
+        this.state.ctx.lineWidth = 2;
+        this.state.ctx.setLineDash([5, 5]);
+        this.state.ctx.strokeRect(x, y, width, height);
+        this.state.ctx.fillRect(x, y, width, height);
+        this.state.ctx.setLineDash([]);
+    }
+
+    getRandomColor() {
+        return {
+            r: Math.floor(Math.random() * 156) + 100,
+            g: Math.floor(Math.random() * 156) + 100,
+            b: Math.floor(Math.random() * 156) + 100
+        };
     }
 
     formatFileSize(bytes) {
@@ -1019,59 +897,24 @@ class ExtractorMigration {
         return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
     }
 
-    getRandomColor() {
-        return {
-            r: Math.floor(Math.random() * 156) + 100, // 100-255 for better visibility
-            g: Math.floor(Math.random() * 156) + 100,
-            b: Math.floor(Math.random() * 156) + 100
-        };
+    removeFile() {
+        console.log('Remove file button clicked');
+        // Placeholder for remove file logic
     }
 
-    showLoading(show) {
-        if (this.elements.loadingOverlay) {
-            this.elements.loadingOverlay.style.display = show ? 'flex' : 'none';
-        }
+    extractDocument() {
+        console.log('Extract document button clicked');
+        // Placeholder for extract document logic
     }
 
-    showToast(message, type = 'info') {
-        // Create toast if it doesn't exist
-        let toast = document.getElementById('extraction-toast');
-        if (!toast) {
-            toast = document.createElement('div');
-            toast.id = 'extraction-toast';
-            toast.style.cssText = `
-                position: fixed;
-                bottom: 20px;
-                right: 20px;
-                padding: 12px 20px;
-                border-radius: 8px;
-                color: white;
-                font-weight: 500;
-                z-index: 1000;
-                opacity: 0;
-                transition: opacity 0.3s ease;
-                max-width: 300px;
-            `;
-            document.body.appendChild(toast);
-        }
-
-        toast.textContent = message;
-        toast.style.backgroundColor = type === 'error' ? '#ef4444' : '#22c55e';
-        toast.style.opacity = '1';
-
-        setTimeout(() => {
-            toast.style.opacity = '0';
-        }, 3000);
+    handleKeydown(e) {
+        console.log('Keydown event:', e);
+        // Placeholder for keyboard shortcut logic
     }
 
     applyCurrentTheme() {
-        // Apply theme based on current page theme
-        const isDark = document.body.classList.contains('dark-theme') || 
-                      document.documentElement.classList.contains('dark');
-        
-        if (isDark && this.elements.canvas) {
-            this.elements.canvas.style.background = '#1f2937';
-        }
+        console.log('Applying current theme (placeholder)');
+        // Add theme application logic here if needed
     }
 }
 

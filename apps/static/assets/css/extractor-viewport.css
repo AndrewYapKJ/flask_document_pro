@@ -7,8 +7,8 @@
     border: 1px solid #e5e7eb;
     border-radius: 8px;
     background: #f9fafb;
-    padding: 20px;
-    margin-bottom: 24px;
+    padding: 8px 8px 0 8px;
+    margin-bottom: 8px;
 }
 
 #documentCanvas {

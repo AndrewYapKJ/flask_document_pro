@@ -55,20 +55,7 @@
             
             <!-- Field Definitions -->
             {% set fields = [
-                {'name': 'invoice_number', 'type': 'text', 'desc': 'The invoice or bill number', 'category': 'basic'},
-                {'name': 'purchase_order_number', 'type': 'text', 'desc': 'The purchase order number of invoice or bill', 'category': 'basic'},
-                {'name': 'invoice_due_date', 'type': 'date', 'desc': 'The due date of the invoice, formatted as YYYY-MM-DD', 'category': 'basic'},
-                {'name': 'invoice_date', 'type': 'date', 'desc': 'The date of the invoice, formatted as YYYY-MM-DD', 'category': 'basic'},
-                {'name': 'invoice_subtotal_amount', 'type': 'number', 'desc': 'The subtotal amount of the invoice', 'category': 'amounts'},
-                {'name': 'invoice_tax_amount', 'type': 'number', 'desc': 'The tax amount of the invoice', 'category': 'amounts'},
-                {'name': 'invoice_total_amount', 'type': 'number', 'desc': 'The total amount of the invoice', 'category': 'amounts'},
-                {'name': 'seller_name', 'type': 'text', 'desc': 'The name of the seller', 'category': 'basic'},
-                {'name': 'line_items', 'type': 'table', 'desc': 'The items in the invoice', 'category': 'table', 'subfields': [
-                    {'name': 'description', 'type': 'text', 'desc': 'The item description or name'},
-                    {'name': 'quantity', 'type': 'number', 'desc': 'The quantity of the item'},
-                    {'name': 'unit_price', 'type': 'number', 'desc': 'The unit price or rate of the item'},
-                    {'name': 'item_total_amount', 'type': 'number', 'desc': 'The total amount of the item'}
-                ]}
+            
             ] %}
             
             <!-- Render Fields -->
@@ -132,7 +119,7 @@
                                 <option value="text" {{ 'selected' if field.type == 'text' else '' }}>Text</option>
                                 <option value="number" {{ 'selected' if field.type == 'number' else '' }}>Number</option>
                                 <option value="date" {{ 'selected' if field.type == 'date' else '' }}>Date</option>
-                                <option value="boolean" {{ 'selected' if field.type == 'boolean' else '' }}>Boolean</option>
+                          
                                 <option value="table" {{ 'selected' if field.type == 'table' else '' }}>Table</option>
                             </select>
                         </div>

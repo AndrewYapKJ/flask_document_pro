@@ -66,7 +66,14 @@ class ExtractorManager {
         const canvasY = e.clientY - rect.top;
         this.currentSelection.endX = canvasX;
         this.currentSelection.endY = canvasY;
-        this.renderSelections();
+        // Use requestAnimationFrame for smooth drawing
+        if (!this._drawing) {
+            this._drawing = true;
+            window.requestAnimationFrame(() => {
+                this.renderSelections();
+                this._drawing = false;
+            });
+        }
     }
 
     handleMouseUp(e) {
@@ -140,10 +147,10 @@ class ExtractorManager {
                 typeBadge.textContent = 'text'; // default type is text
                 typeBadge.className = 'field-type-badge text';
             }
-            // Set rectangle position in description
-            const fieldDescDiv = newField.querySelector('.field-description');
-            if (fieldDescDiv) {
-                fieldDescDiv.textContent = `Rectangle Position: x: ${selection.rect.x}, y: ${selection.rect.y}, w: ${selection.rect.width}, h: ${selection.rect.height}`;
+            // Update the Viewport Description textarea with rectangle data
+            const viewportDescTextarea = newEditor.querySelector(`#viewport-description-${nextIndex}`);
+            if (viewportDescTextarea) {
+                viewportDescTextarea.value = `Rectangle: x: ${selection.rect.x}, y: ${selection.rect.y}, w: ${selection.rect.width}, h: ${selection.rect.height}`;
             }
             // Hide editor by default
             newEditor.style.display = 'none';
@@ -180,8 +187,18 @@ class ExtractorManager {
                     }
                 });
             }
-            // Table conversion is handled by type select and updateFieldDisplay logic
+            // Setup table field events for the new field
+            this.setupTableFieldEventsForElement(newEditor);
             this.applyThemeStyles();
+            // Auto-open the edit mode for the new field (like extractor.js)
+            setTimeout(() => {
+                this.editField(newField, newEditor);
+                const nameInput = newEditor.querySelector('.field-name-input');
+                if (nameInput) {
+                    nameInput.focus();
+                    nameInput.select();
+                }
+            }, 100);
         }
     }
     
@@ -575,19 +592,11 @@ class ExtractorManager {
         const fieldNameSpan = field.querySelector('.field-name');
         if (nameInput && fieldNameSpan) {
             fieldNameSpan.textContent = nameInput.value || 'unnamed_field';
-            // Sync rectangle label in selections and re-render
+            // Always find rectangle by previous label and update only label
             const newLabel = nameInput.value || 'unnamed_field';
-            const selIdx = this.selections.findIndex(sel => sel.label === fieldNameSpan.textContent);
-            // Try to find by old label if possible
-            if (selIdx === -1) {
-                // Try to find by previous label stored in editor
-                const prevLabel = editor.dataset.originalFieldName;
-                const idx = this.selections.findIndex(sel => sel.label === prevLabel);
-                if (idx !== -1) {
-                    this.selections[idx].label = newLabel;
-                    this.renderSelections();
-                }
-            } else {
+            const prevLabel = editor.dataset.originalFieldName;
+            const selIdx = this.selections.findIndex(sel => sel.label === prevLabel);
+            if (selIdx !== -1) {
                 this.selections[selIdx].label = newLabel;
                 this.renderSelections();
             }
@@ -611,8 +620,18 @@ class ExtractorManager {
             // Update field row class for table fields
             if (newType === 'table') {
                 field.classList.add('table-field');
+                // Show table config and subfields UI, create if missing
+                const fieldEditor = editor;
+                const tableConfig = fieldEditor.querySelector('.table-config');
+                const tableSubfields = field.querySelector('.table-subfields');
+                this.showTableConfiguration(tableConfig, tableSubfields, field);
             } else {
                 field.classList.remove('table-field');
+                // Hide table config and subfields UI
+                const fieldEditor = editor;
+                const tableConfig = fieldEditor.querySelector('.table-config');
+                const tableSubfields = field.querySelector('.table-subfields');
+                this.hideTableConfiguration(tableConfig, tableSubfields, field);
             }
         }
 
@@ -711,11 +730,7 @@ class ExtractorManager {
             tableSubfields.style.display = 'block';
         }
 
-        // If this is a newly added field that hasn't been saved, remove it
-        if (field.hasAttribute('data-is-new-field')) {
-            field.remove();
-            return;
-        }
+    // Cancel should NOT delete field or rectangle, just restore values and close editor
 
         field.classList.remove('expanded');
         editor.style.display = 'none';
@@ -851,7 +866,7 @@ class ExtractorManager {
                                 <option value="text" selected>Text</option>
                                 <option value="number">Number</option>
                                 <option value="date">Date</option>
-                                <option value="boolean">Boolean</option>
+                        
                                 <option value="table">Table</option>
                             </select>
                         </div>
@@ -863,6 +878,10 @@ class ExtractorManager {
                     <div>
                         <label class="field-label">Field Description</label>
                         <textarea class="form-control field-desc-input" rows="3" placeholder="#DESCRIPTION: short description of the field&#10;&#10;# LABEL SYNONYM: e.g., 'Invoice No.', 'Inv #', 'Ref No.'&#10;&#10;# LOCATION: e.g. in the header or bottom of page or next to delivery address"></textarea>
+                    </div>
+                    <div>
+                        <label class="field-label">Viewport Description</label>
+                        <textarea id="viewport-description-${index}" class="form-control viewport-description" rows="3" readonly></textarea>
                     </div>
                     
                     <!-- Table Field Configuration -->
@@ -2127,13 +2146,7 @@ class ExtractorManager {
             }
         });
 
-        // Add column button handler
-        document.querySelectorAll('.add-column-btn').forEach(btn => {
-            if (!btn.hasAttribute('data-listener-attached')) {
-                btn.addEventListener('click', (e) => this.handleAddColumn(e));
-                btn.setAttribute('data-listener-attached', 'true');
-            }
-        });
+    // Add column button handler (removed to prevent double firing; handled per field editor)
 
         // Add subfield button handler
         document.querySelectorAll('.add-subfield-btn').forEach(btn => {
@@ -2153,10 +2166,14 @@ class ExtractorManager {
             typeSelect.addEventListener('change', (e) => this.handleFieldTypeChange(e));
         }
 
-        // Add column button handler for specific element
+        // Add column button handler for specific element (remove previous listeners to prevent double firing)
         const addColumnBtn = element.querySelector('.add-column-btn');
         if (addColumnBtn) {
-            addColumnBtn.addEventListener('click', (e) => this.handleAddColumn(e));
+            addColumnBtn.replaceWith(addColumnBtn.cloneNode(true));
+            const newAddColumnBtn = element.querySelector('.add-column-btn');
+            if (newAddColumnBtn) {
+                newAddColumnBtn.addEventListener('click', (e) => this.handleAddColumn(e));
+            }
         }
 
         // Add subfield button handler for specific element
@@ -2434,10 +2451,10 @@ class ExtractorManager {
 
     setupRemoveColumnEvents() {
         document.querySelectorAll('.remove-column-btn').forEach(btn => {
-            if (!btn.hasAttribute('data-listener-attached')) {
-                btn.addEventListener('click', (e) => this.handleRemoveColumn(e));
-                btn.setAttribute('data-listener-attached', 'true');
-            }
+            btn.replaceWith(btn.cloneNode(true));
+        });
+        document.querySelectorAll('.remove-column-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => this.handleRemoveColumn(e));
         });
 
         document.querySelectorAll('.delete-subfield-btn').forEach(btn => {

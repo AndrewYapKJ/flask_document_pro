@@ -12,7 +12,7 @@
 {% block content %}
 <div class="pcoded-main-container">
     <div class="extractor-main-row">
-        <!-- Document Panel -->
+        <!-- Document Panel -->3
         <div class="extractor-document-panel">
             <div class="dashboard-card upload-card">
                 <div class="card-body d-flex flex-column justify-content-between align-items-center">
@@ -131,7 +131,6 @@
                                 <option value="text" {{ 'selected' if field.type == 'text' else '' }}>Text</option>
                                 <option value="number" {{ 'selected' if field.type == 'number' else '' }}>Number</option>
                                 <option value="date" {{ 'selected' if field.type == 'date' else '' }}>Date</option>
-                                <option value="boolean" {{ 'selected' if field.type == 'boolean' else '' }}>Boolean</option>
                                 <option value="table" {{ 'selected' if field.type == 'table' else '' }}>Table</option>
                             </select>
                         </div>
@@ -175,7 +174,12 @@
                         </div>
                         <button type="button" class="add-column-btn">+ Add Column</button>
                     </div>
-                    
+                    {% if field.rect != null %}
+                       <div>
+                        <label class="field-label">Viewports Description</label>
+                        <textarea id="viewport-description" class="form-control" rows="3" readonly></textarea>
+                    </div>
+                    {% endif %}
                     <div class="editor-actions table-action-buttons">
                         <button class="table-save-btn save-btn" data-idx="{{ loop.index }}" data-action="save">Save</button>
                         <button class="table-cancel-btn cancel-btn" data-idx="{{ loop.index }}" data-action="cancel">Cancel</button>

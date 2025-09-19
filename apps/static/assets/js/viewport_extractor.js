@@ -1005,27 +1005,42 @@ class ExtractorManager {
 
     renderDocumentContent(file) {
         console.log('Rendering document content for:', file.name, 'Type:', file.type);
-        
-        const documentContent = document.querySelector('.document-content');
-        if (!documentContent) {
-            console.error('Document content container not found');
-            return;
-        }
-
-        // Cleanup any existing observers
-        this.cleanupPDFObservers();
-        
-        // Clear existing content
-        documentContent.innerHTML = '<div class="loading-preview">Loading document...</div>';
-        
-        if (file.type === 'application/pdf') {
-            this.renderPDFWithCanvas(documentContent, file);
-        } else if (file.type.startsWith('image/')) {
-            this.renderImageContent(documentContent, file);
-        } else {
-            documentContent.innerHTML = '<div class="unsupported-file">Preview not available for this file type</div>';
-        }
+    const documentContent = document.querySelector('.document-content');
+    if (!documentContent) {
+        console.error('Document content container not found');
+        return;
     }
+    // Cleanup any existing observers
+    this.cleanupPDFObservers();
+    // Clear existing content
+    documentContent.innerHTML = '<div class="loading-preview">Loading document...</div>';
+    if (file.type === 'application/pdf') {
+        this.renderPDFWithCanvas(documentContent, file);
+    } else if (file.type === 'image/png' || file.type === 'image/jpeg' || file.type === 'image/jpg') {
+        // Render image onto canvas and enable rectangle drawing
+        const img = new window.Image();
+        img.src = URL.createObjectURL(file);
+        img.onload = () => {
+            documentContent.innerHTML = '';
+            this.images = [img];
+            this.target_width = img.width;
+            this.target_height = img.height;
+            this.setupCanvas();
+            this.canvas.width = img.width;
+            this.canvas.height = img.height;
+            this.canvas.style.width = img.width + 'px';
+            this.canvas.style.height = img.height + 'px';
+            this.ctx = this.canvas.getContext('2d');
+            documentContent.appendChild(this.canvas);
+            this.renderSelections();
+        };
+        img.onerror = () => {
+            documentContent.innerHTML = '<div class="error">Failed to load image.</div>';
+        };
+    } else {
+        documentContent.innerHTML = '<div class="unsupported-file">Preview not available for this file type</div>';
+    }
+}
 
     renderPDFWithCanvas(container, file) {
         console.log('Rendering PDF with Canvas');
@@ -1948,7 +1963,7 @@ class ExtractorManager {
             const tableSubfields = fieldRow.querySelector('.table-subfields');
             if (tableSubfields) {
                 tableSubfields.parentNode.insertBefore(tableDisplay, tableSubfields.nextSibling);
-            }
+                       }
         }
         
         // Populate table data
@@ -2443,7 +2458,7 @@ class ExtractorManager {
             const isDark = document.body.classList.contains('dark');
             const colors = this.getTypeColors(type, isDark);
             if (colors) {
-                typeSpan.style.setProperty('color', colors.color, );
+                typeSpan.style.setProperty('color', colors.color, 'important');
                //  typeSpan.style.background = colors.background;
             }
         }

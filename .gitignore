@@ -16,6 +16,7 @@ env
 venv
 .venv
 .venv/
+.venv/*
 .venv/lib/
 # other
 .DS_Store

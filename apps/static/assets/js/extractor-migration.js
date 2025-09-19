@@ -769,18 +769,19 @@ class ExtractorMigration {
         const minHeight = 10;
 
         if (width > minWidth && height > minHeight) {
-            const label = prompt('Enter label for the selection:');
-            if (label) {
-                const selection = {
-                    startX,
-                    startY,
-                    endX,
-                    endY,
-                    label,
-                    color: this.getRandomColor()
-                };
-                this.addSelection(selection);
+            let label = prompt('Enter label for the selection:');
+            if (!label) {
+                label = `Viewport ${this.state.selections.length + 1}`;
             }
+            const selection = {
+                startX,
+                startY,
+                endX,
+                endY,
+                label,
+                color: this.getRandomColor()
+            };
+            this.addSelection(selection);
         }
 
         this.state.currentSelection = {};

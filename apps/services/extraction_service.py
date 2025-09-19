@@ -186,7 +186,11 @@ class DocumentExtractionService:
                             "Do not add extra fields. Do not add explanations. "
                             "Return only valid JSON. "
                             "If a field is not found in the document, use null. "
-                            "For table fields, return an array of objects even if empty."
+                            "For table fields, return an array of objects even if empty. "
+                            "IMPORTANT: Some field descriptions contain [POSITION: ...] information "
+                            "indicating specific areas in the document to focus on. "
+                            "Use these position hints to extract data from the precise locations specified. "
+                            "Position coordinates are given as percentages from the document edges or absolute pixels."
                         )
                     },
                     {
@@ -238,13 +242,19 @@ class DocumentExtractionService:
             return self._generate_dummy_data(schema)
     
     def _build_extraction_schema(self, form_schema: Dict[str, Any]) -> Dict[str, Any]:
-        """Build OpenAI extraction schema from form schema"""
+        """Build OpenAI extraction schema from form schema with position information"""
         extraction_schema = {}
         
         for field in form_schema.get('fields', []):
             field_name = field.get('name', '')
             field_type = field.get('type', 'text')
             description = field.get('description', '')
+            position = field.get('position', {})
+            
+            # Build enhanced description with position information
+            enhanced_description = self._build_field_description_with_position(
+                field_name, description, position
+            )
             
             if field_type == 'table':
                 # Handle table fields with subfield structure
@@ -263,32 +273,73 @@ class DocumentExtractionService:
                 # Table should be an array of objects
                 extraction_schema[field_name] = {
                     "type": "array",
-                    "description": f"Array of {description}" if description else f"Array of {field_name} items",
+                    "description": enhanced_description,
                     "items": subfields
                 }
             elif field_type == 'number':
                 extraction_schema[field_name] = {
                     "type": "number",
-                    "description": description or f"Numeric value for {field_name}"
+                    "description": enhanced_description
                 }
             elif field_type == 'date':
                 extraction_schema[field_name] = {
                     "type": "string",
                     "format": "YYYY-MM-DD",
-                    "description": description or f"Date value for {field_name}"
+                    "description": enhanced_description
                 }
             elif field_type == 'boolean':
                 extraction_schema[field_name] = {
                     "type": "boolean",
-                    "description": description or f"Boolean value for {field_name}"
+                    "description": enhanced_description
                 }
             else:
                 extraction_schema[field_name] = {
                     "type": "string", 
-                    "description": description or f"Text value for {field_name}"
+                    "description": enhanced_description
                 }
         
         return extraction_schema
+
+    def _build_field_description_with_position(self, field_name: str, description: str, position: Dict[str, Any]) -> str:
+        """Build enhanced field description including position information for OpenAI"""
+        base_desc = description or f"Extract {field_name}"
+        
+        # Check if position data is available
+        if not position or not position.get('rect'):
+            return base_desc
+        
+        rect = position.get('rect', {})
+        coords = position.get('coordinates', {})
+        scale = position.get('scale', 1)
+        canvas_dims = position.get('canvasDimensions', {})
+        page_num = position.get('pageNumber', 1)
+        
+        # Build position description
+        position_desc = f" [POSITION: Look specifically in the document area at coordinates "
+        
+        if rect:
+            # Convert canvas coordinates to relative positions (percentages)
+            canvas_width = canvas_dims.get('displayWidth', canvas_dims.get('width', 1))
+            canvas_height = canvas_dims.get('displayHeight', canvas_dims.get('height', 1))
+            
+            if canvas_width > 0 and canvas_height > 0:
+                x_percent = (rect.get('x', 0) / canvas_width) * 100
+                y_percent = (rect.get('y', 0) / canvas_height) * 100
+                width_percent = (rect.get('width', 0) / canvas_width) * 100
+                height_percent = (rect.get('height', 0) / canvas_height) * 100
+                
+                position_desc += f"approximately {x_percent:.1f}% from left, {y_percent:.1f}% from top, "
+                position_desc += f"spanning {width_percent:.1f}% width and {height_percent:.1f}% height"
+            else:
+                position_desc += f"x:{rect.get('x', 0)}, y:{rect.get('y', 0)}, "
+                position_desc += f"width:{rect.get('width', 0)}, height:{rect.get('height', 0)}"
+        
+        if page_num > 1:
+            position_desc += f" on page {page_num}"
+            
+        position_desc += "]"
+        
+        return base_desc + position_desc
     
     def _format_extraction_results(self, extracted_data: Dict[str, Any], form_schema: Dict[str, Any]) -> Dict[str, Any]:
         """Format extraction results to match UI expectations"""

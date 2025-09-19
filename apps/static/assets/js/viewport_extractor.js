@@ -503,6 +503,83 @@ class ExtractorManager {
     }
 
     saveField(field, editor, idx) {
+        // Get the field name input value
+        const fieldNameInput = editor.querySelector('.field-name-input');
+        const fieldName = fieldNameInput ? fieldNameInput.value.trim() : '';
+        
+        // Validate field name is not empty
+        if (!fieldName) {
+            alert('Field name is required. Please enter a valid field name.');
+            if (fieldNameInput) {
+                fieldNameInput.focus();
+                fieldNameInput.style.border = '2px solid #dc3545';
+                setTimeout(() => {
+                    fieldNameInput.style.border = '';
+                }, 3000);
+            }
+            return;
+        }
+        
+        // Get current field name from display (for editing existing fields)
+        const currentFieldNameSpan = field.querySelector('.field-name');
+        const currentFieldName = currentFieldNameSpan ? currentFieldNameSpan.textContent : '';
+        
+        // Always check for uniqueness (even if name hasn't changed, to catch edge cases)
+        // Get all existing field names from the display, excluding the current field being edited
+        const currentFieldElement = field; // The field being edited
+        const allFieldElements = Array.from(document.querySelectorAll('.extractor-field-row'));
+        const allFieldNames = [];
+        
+        allFieldElements.forEach(fieldElement => {
+            // Skip the current field being edited
+            if (fieldElement === currentFieldElement) return;
+            
+            const fieldNameSpan = fieldElement.querySelector('.field-name');
+            if (fieldNameSpan && fieldNameSpan.textContent.trim()) {
+                allFieldNames.push(fieldNameSpan.textContent.trim());
+            }
+        });
+        
+        // Also check selections array (for viewport selections)
+        this.selections.forEach(sel => {
+            if (sel.label && sel.label !== currentFieldName) {
+                allFieldNames.push(sel.label);
+            }
+        });
+        
+        // Check if the new field name already exists
+        const isDuplicate = allFieldNames.includes(fieldName);
+        
+        console.log('=== FIELD NAME VALIDATION ===');
+        console.log('Field being saved:', fieldName);
+        console.log('Current field name (before change):', currentFieldName);
+        console.log('All existing field names found:', allFieldNames);
+        console.log('Is duplicate?', isDuplicate);
+        console.log('Number of existing fields found:', allFieldElements.length);
+        console.log('=============================');
+        
+        if (isDuplicate) {
+            const message = `Field name "${fieldName}" already exists!\n\nExisting field names:\n${allFieldNames.join(', ')}\n\nPlease enter a unique field name.`;
+            alert(message);
+            if (fieldNameInput) {
+                fieldNameInput.focus();
+                fieldNameInput.select();
+                fieldNameInput.style.border = '2px solid #dc3545';
+                fieldNameInput.style.backgroundColor = '#ffebee';
+                setTimeout(() => {
+                    fieldNameInput.style.border = '';
+                    fieldNameInput.style.backgroundColor = '';
+                }, 3000);
+            }
+            return;
+        }
+        
+        // Update the label in selections array if this field exists there
+        const selectionIndex = this.selections.findIndex(sel => sel.label === currentFieldName);
+        if (selectionIndex !== -1) {
+            this.selections[selectionIndex].label = fieldName;
+        }
+        
         // Update field display with the edited values
         this.updateFieldDisplay(field, editor);
         
@@ -519,14 +596,37 @@ class ExtractorManager {
         const tableSubfields = field.querySelector('.table-subfields');
 
         if (fieldTypeSelect?.value === 'table' && tableSubfields) {
+            // Check if table has at least one column
+            const tableColumns = editor.querySelectorAll('.table-column-row');
+            if (tableColumns.length === 0) {
+                alert('Table fields must have at least one column. Please add columns before saving.');
+                return;
+            }
+            
+            // Validate and sync table columns - if validation fails, don't save
+            const syncResult = this.syncTableConfigurationToDisplay(field, editor);
+            if (syncResult === false) {
+                // Validation failed, keep editor open
+                return;
+            }
+            
             tableSubfields.style.display = 'block';
             field.classList.add('table-field');
-
-            // Sync configuration columns to display elements
-            this.syncTableConfigurationToDisplay(field, editor);
         }
 
-        console.log('Saving field:', idx);
+        console.log('Saving field:', idx, 'with name:', fieldName);
+        
+        // Show success feedback
+        const saveBtn = editor.querySelector('.save-btn');
+        if (saveBtn) {
+            const originalText = saveBtn.textContent;
+            saveBtn.textContent = 'Saved!';
+            saveBtn.style.backgroundColor = '#28a745';
+            setTimeout(() => {
+                saveBtn.textContent = originalText;
+                saveBtn.style.backgroundColor = '';
+            }, 1500);
+        }
     }
 
     syncTableConfigurationToDisplay(field, editor) {
@@ -535,6 +635,51 @@ class ExtractorManager {
         const addSubfieldBtn = subfieldsContainer?.querySelector('.add-subfield-btn');
         
         if (!subfieldsContainer || !addSubfieldBtn) return;
+
+        // Validate table column names before syncing
+        const columnNames = [];
+        let hasValidationError = false;
+        
+        for (let columnRow of tableColumns) {
+            const nameInput = columnRow.querySelector('.column-name-input');
+            const columnName = nameInput?.value?.trim() || '';
+            
+            // Check if column name is empty
+            if (!columnName) {
+                alert('All table column names are required. Please enter valid column names.');
+                if (nameInput) {
+                    nameInput.focus();
+                    nameInput.style.border = '2px solid #dc3545';
+                    setTimeout(() => {
+                        nameInput.style.border = '';
+                    }, 3000);
+                }
+                hasValidationError = true;
+                break;
+            }
+            
+            // Check for duplicate column names within this table
+            if (columnNames.includes(columnName)) {
+                alert(`Duplicate column name "${columnName}" found. All column names within a table must be unique.`);
+                if (nameInput) {
+                    nameInput.focus();
+                    nameInput.select();
+                    nameInput.style.border = '2px solid #dc3545';
+                    setTimeout(() => {
+                        nameInput.style.border = '';
+                    }, 3000);
+                }
+                hasValidationError = true;
+                break;
+            }
+            
+            columnNames.push(columnName);
+        }
+        
+        // Return false if validation failed to prevent saving
+        if (hasValidationError) {
+            return false;
+        }
 
         // Clear existing subfield wrappers (except the add button)
         const existingWrappers = subfieldsContainer.querySelectorAll('.subfield-wrapper');
@@ -584,6 +729,9 @@ class ExtractorManager {
         });
 
         this.applyThemeStyles();
+        
+        // Return true to indicate successful validation and sync
+        return true;
     }
 
     updateFieldDisplay(field, editor) {
@@ -1480,8 +1628,12 @@ class ExtractorManager {
             return;
         }
 
-        // Get the current schema configuration
+        // Get the current schema configuration with position data
         const schemaConfig = this.getCurrentSchemaConfig();
+        
+        console.log('=== EXTRACTION REQUEST ===');
+        console.log('Schema config with positions:', JSON.stringify(schemaConfig, null, 2));
+        console.log('==========================');
         
         // Show loading state
         this.showExtractionLoading();
@@ -1490,6 +1642,15 @@ class ExtractorManager {
         const formData = new FormData();
         formData.append('file', this.selectedFile);
         formData.append('schema', JSON.stringify(schemaConfig));
+        
+        // Add additional metadata for OpenAI processing
+        formData.append('extractionMetadata', JSON.stringify({
+            hasPositionData: schemaConfig.fields.some(f => f.position?.rect),
+            totalFields: schemaConfig.fields.length,
+            fieldsWithPositions: schemaConfig.fields.filter(f => f.position?.rect).length,
+            documentScale: schemaConfig.documentMetadata?.scale,
+            canvasInfo: schemaConfig.documentMetadata?.canvasDimensions
+        }));
         
         // Send extraction request
         fetch('/api/extract', {
@@ -1515,6 +1676,15 @@ class ExtractorManager {
     getCurrentSchemaConfig() {
         const fields = [];
         
+        // Get document scale and dimensions for position calculations
+        const documentMetadata = this.getDocumentMetadata();
+        
+        console.log('=== DOCUMENT EXTRACTION METADATA ===');
+        console.log('Document scale:', documentMetadata.scale);
+        console.log('Canvas dimensions:', documentMetadata.canvasDimensions);
+        console.log('Total selections available:', this.selections.length);
+        console.log('=====================================');
+        
         // Get all field rows
         document.querySelectorAll('.extractor-field-row').forEach((fieldRow, index) => {
             const fieldName = fieldRow.querySelector('.field-name').textContent.trim();
@@ -1526,6 +1696,42 @@ class ExtractorManager {
                 type: fieldType,
                 description: fieldDesc
             };
+            
+            // Find corresponding selection with position data
+            const selection = this.selections.find(sel => sel.label === fieldName);
+            if (selection) {
+                // Add position and scale information for OpenAI extraction
+                field.position = {
+                    rect: {
+                        x: selection.rect.x,
+                        y: selection.rect.y,
+                        width: selection.rect.width,
+                        height: selection.rect.height
+                    },
+                    coordinates: {
+                        startX: selection.startX,
+                        startY: selection.startY,
+                        endX: selection.endX,
+                        endY: selection.endY
+                    },
+                    scale: documentMetadata.scale,
+                    canvasDimensions: documentMetadata.canvasDimensions,
+                    pageNumber: this.getFieldPageNumber(selection)
+                };
+                
+                console.log(`Field "${fieldName}" position data:`, field.position);
+            } else {
+                console.warn(`No position data found for field: ${fieldName}`);
+                // Add placeholder position data for fields without selections
+                field.position = {
+                    rect: null,
+                    coordinates: null,
+                    scale: documentMetadata.scale,
+                    canvasDimensions: documentMetadata.canvasDimensions,
+                    pageNumber: null,
+                    note: "Field created without viewport selection"
+                };
+            }
             
             // Handle table fields with subfields
             if (fieldType === 'table') {
@@ -1547,7 +1753,45 @@ class ExtractorManager {
             fields.push(field);
         });
         
-        return { fields };
+        return { 
+            fields,
+            documentMetadata
+        };
+    }
+
+    getDocumentMetadata() {
+        // Get current canvas dimensions and scale information
+        const canvas = this.canvas;
+        const canvasDimensions = canvas ? {
+            width: canvas.width,
+            height: canvas.height,
+            displayWidth: canvas.clientWidth,
+            displayHeight: canvas.clientHeight
+        } : null;
+        
+        // Get current scale information
+        const scale = this.baseScale || 1;
+        
+        // Get PDF document information if available
+        const pdfInfo = this.currentPDF ? {
+            numPages: this.currentPDF.numPages,
+            fingerprint: this.currentPDF.fingerprint
+        } : null;
+        
+        return {
+            scale: scale,
+            canvasDimensions: canvasDimensions,
+            pdfInfo: pdfInfo,
+            currentPageNum: this.currentPageNum,
+            timestamp: new Date().toISOString()
+        };
+    }
+
+    getFieldPageNumber(selection) {
+        // For now, return current page number
+        // In a multi-page PDF, you might need more sophisticated logic
+        // to determine which page the selection belongs to
+        return this.currentPageNum || 1;
     }
 
     showExtractionLoading() {

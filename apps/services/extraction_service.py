@@ -149,13 +149,14 @@ class DocumentExtractionService:
             file_b64 = base64.b64encode(file_bytes).decode("utf-8")
             return file_b64, mime_type
             
-    def extract_from_file(self, file_bytes: bytes, schema: Dict[str, Any]) -> Dict[str, Any]:
+    def extract_from_file(self, file_bytes: bytes, schema: Dict[str, Any], use_position: bool = True) -> Dict[str, Any]:
         """
         Extract data from document using OpenAI Vision API
         
         Args:
             file_bytes: The file content as bytes
             schema: The expected data schema
+            use_position: Whether to use position information for extraction
             
         Returns:
             Extracted data matching the schema
@@ -170,9 +171,34 @@ class DocumentExtractionService:
             file_b64, mime_type = self._prepare_image_for_api(file_bytes)
             
             # Build the extraction schema from the form fields
-            extraction_schema = self._build_extraction_schema(schema)
+            extraction_schema = self._build_extraction_schema(schema, use_position)
             
             print(f"Sending document to OpenAI for extraction with schema: {extraction_schema}")
+            
+            # Prepare system message based on extraction type
+            if use_position:
+                system_message = (
+                    "You are a document extraction engine. "
+                    "Extract data strictly following the given JSON schema. "
+                    "Do not add extra fields. Do not add explanations. "
+                    "Return only valid JSON. "
+                    "If a field is not found in the document, use null. "
+                    "For table fields, return an array of objects even if empty. "
+                    "IMPORTANT: Some field descriptions contain [POSITION: ...] information "
+                    "indicating specific areas in the document to focus on. "
+                    "Use these position hints to extract data from the precise locations specified. "
+                    "Position coordinates are given as percentages from the document edges or absolute pixels."
+                )
+            else:
+                system_message = (
+                    "You are a document extraction engine. "
+                    "Extract data strictly following the given JSON schema. "
+                    "Do not add extra fields. Do not add explanations. "
+                    "Return only valid JSON. "
+                    "If a field is not found in the document, use null. "
+                    "For table fields, return an array of objects even if empty. "
+                    "Scan the entire document to find the requested information."
+                )
             
             # Call OpenAI API
             response = self.client.chat.completions.create(
@@ -180,18 +206,7 @@ class DocumentExtractionService:
                 messages=[
                     {
                         "role": "system",
-                        "content": (
-                            "You are a document extraction engine. "
-                            "Extract data strictly following the given JSON schema. "
-                            "Do not add extra fields. Do not add explanations. "
-                            "Return only valid JSON. "
-                            "If a field is not found in the document, use null. "
-                            "For table fields, return an array of objects even if empty. "
-                            "IMPORTANT: Some field descriptions contain [POSITION: ...] information "
-                            "indicating specific areas in the document to focus on. "
-                            "Use these position hints to extract data from the precise locations specified. "
-                            "Position coordinates are given as percentages from the document edges or absolute pixels."
-                        )
+                        "content": system_message
                     },
                     {
                         "role": "user",
@@ -241,8 +256,106 @@ class DocumentExtractionService:
             # Return dummy data as fallback for any other errors
             return self._generate_dummy_data(schema)
     
-    def _build_extraction_schema(self, form_schema: Dict[str, Any]) -> Dict[str, Any]:
-        """Build OpenAI extraction schema from form schema with position information"""
+    def extract_with_position(self, file_bytes: bytes, schema: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Extract data from document using position information
+        
+        Args:
+            file_bytes: The file content as bytes
+            schema: The expected data schema with position information
+            
+        Returns:
+            Extracted data matching the schema
+        """
+        return self.extract_from_file(file_bytes, schema, use_position=True)
+    
+    def extract_without_position(self, file_bytes: bytes, schema: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Extract data from document without using position information
+        
+        Args:
+            file_bytes: The file content as bytes
+            schema: The expected data schema
+            
+        Returns:
+            Extracted data matching the schema
+        """
+        return self.extract_from_file(file_bytes, schema, use_position=False)
+    
+    def _build_extraction_schema(self, form_schema: Dict[str, Any], use_position: bool = True) -> Dict[str, Any]:
+        """
+        Build OpenAI extraction schema from form schema
+        
+        Args:
+            form_schema: The form schema configuration
+            use_position: Whether to include position information in the schema
+            
+        Returns:
+            Extraction schema for OpenAI API
+        """
+        if use_position:
+            return self._build_extraction_schema_with_position(form_schema)
+        else:
+            return self._build_extraction_schema_basic(form_schema)
+    
+    def _build_extraction_schema_basic(self, form_schema: Dict[str, Any]) -> Dict[str, Any]:
+        """Build basic OpenAI extraction schema without position information"""
+        extraction_schema = {}
+        
+        for field in form_schema.get('fields', []):
+            field_name = field.get('name', '')
+            field_type = field.get('type', 'text')
+            description = field.get('description', '')
+            
+            # Use basic description without position information
+            field_description = description or f"Extract {field_name} from the document"
+            
+            if field_type == 'table':
+                # Handle table fields with subfield structure
+                subfields = {}
+                for subfield in field.get('subfields', []):
+                    subfield_name = subfield.get('name', '')
+                    subfield_type = subfield.get('type', 'text')
+                    
+                    if subfield_type == 'number':
+                        subfields[subfield_name] = "number"
+                    elif subfield_type == 'date':
+                        subfields[subfield_name] = "YYYY-MM-DD"
+                    else:
+                        subfields[subfield_name] = "string"
+                
+                # Table should be an array of objects
+                extraction_schema[field_name] = {
+                    "type": "array",
+                    "description": field_description,
+                    "items": subfields
+                }
+            elif field_type == 'number':
+                extraction_schema[field_name] = {
+                    "type": "number",
+                    "description": field_description
+                }
+            elif field_type == 'date':
+                extraction_schema[field_name] = {
+                    "type": "string",
+                    "format": "YYYY-MM-DD",
+                    "description": field_description
+                }
+            elif field_type == 'boolean':
+                extraction_schema[field_name] = {
+                    "type": "boolean",
+                    "description": field_description
+                }
+            else:
+                extraction_schema[field_name] = {
+                    "type": "string", 
+                    "description": field_description
+                }
+        
+        return extraction_schema
+    
+    def _build_extraction_schema_with_position(self, form_schema: Dict[str, Any]) -> Dict[str, Any]:
+        """Build OpenAI extraction schema with position information"""
         extraction_schema = {}
         
         for field in form_schema.get('fields', []):

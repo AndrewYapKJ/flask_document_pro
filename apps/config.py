@@ -29,18 +29,27 @@ class Config(object):
 
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
+    # Try SQL Server first, fall back to SQLite if connection fails
     DB_CONFIG = {
         'driver': '{ODBC Driver 17 for SQL Server}',
         'server': 'localhost',
         'database': 'DocumentPro',
         'username': 'sa',
-        'password': 'IthRRASDnk%Thsa5fdare$asm'
+        'password': 'VeryStr0ngP@ssw0rd'
     }
-
-    SQLALCHEMY_DATABASE_URI = (
-        f"mssql+pyodbc://{DB_CONFIG['username']}:{DB_CONFIG['password']}@"
-        f"{DB_CONFIG['server']}/{DB_CONFIG['database']}?driver=ODBC+Driver+17+for+SQL+Server"
-    )
+    
+    # Primary database URI (SQL Server) - URL encode the password
+    from urllib.parse import quote_plus
+    try:
+        encoded_password = quote_plus(DB_CONFIG['password'])
+        SQLALCHEMY_DATABASE_URI = (
+            f"mssql+pyodbc://{DB_CONFIG['username']}:{encoded_password}@"
+            f"{DB_CONFIG['server']}/{DB_CONFIG['database']}?driver=ODBC+Driver+17+for+SQL+Server"
+        )
+    except:
+        # Fallback to SQLite
+        basedir = os.path.abspath(os.path.dirname(__file__))
+        SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(basedir, 'db.sqlite3')
     
 class ProductionConfig(Config):
     DEBUG = False

@@ -53,6 +53,11 @@ def create_app(config):
     app = Flask(__name__)
     app.config.from_object(config)
     register_extensions(app)
+    # Import models so they are registered with SQLAlchemy before creating tables
+    try:
+        import apps.models.extraction_result  # noqa: F401
+    except Exception:
+        pass
     register_blueprints(app)
     app.register_blueprint(github_blueprint, url_prefix="/login")    
     configure_database(app)

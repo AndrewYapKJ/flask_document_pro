@@ -115,12 +115,28 @@ def extract_document():
         
         # Extract data using OpenAI
         results = extraction_service.extract_from_file(file_content, schema_dict)
-        
+        # Persist extraction result to database
+        try:
+            from apps.models.extraction_result import ExtractionResult
+            from apps import db
+
+            record = ExtractionResult(
+                filename=file.filename,
+                data=results
+            )
+            db.session.add(record)
+            db.session.commit()
+            saved_id = record.id
+        except Exception as e:
+            print(f"Warning: failed to save extraction result: {e}")
+            saved_id = None
+
         return jsonify({
             'success': True,
             'data': results,
             'filename': file.filename,
-            'viewports': viewports
+            'viewports': viewports,
+            'saved_id': saved_id
         })
         
     except Exception as e:

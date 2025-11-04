@@ -5,12 +5,10 @@ Copyright (c) 2019 - present AppSeed.us
 
 from apps.home import blueprint
 from flask import render_template, request, jsonify
-from flask_login import login_required, current_user
+from flask_login import login_required
 from jinja2 import TemplateNotFound
 import json
 import os
-from apps import db
-from apps.models.extraction_models import ExtractionTemplate, ExtractionField, ExtractionSubfield, ExtractionResult, SavedExtraction
 
 
 @blueprint.route('/index')
@@ -18,10 +16,6 @@ from apps.models.extraction_models import ExtractionTemplate, ExtractionField, E
 def index():
 
     return render_template('home/index.html', segment='index')
-@blueprint.route('/index/bot_list')
-@login_required
-def bot_list():
-    return render_template('home/bot_list.html', segment='bot_list')
 
 
 @blueprint.route('/index/extractor-extract')
@@ -103,7 +97,6 @@ def extract_document():
         # Get schema and viewports
         schema_json = request.form.get('schema', '[]')
         viewports_json = request.form.get('viewports', '[]')
-        extraction_type = request.form.get('extraction_type', 'with_position')  # default to position-based
         
         schema = json.loads(schema_json)
         viewports = json.loads(viewports_json)
@@ -120,67 +113,18 @@ def extract_document():
             'fields': schema
         }
         
-        # Extract data using OpenAI based on extraction type
-        if extraction_type == 'without_position':
-            results = extraction_service.extract_without_position(file_content, schema_dict)
-        else:
-            results = extraction_service.extract_with_position(file_content, schema_dict)
+        # Extract data using OpenAI
+        results = extraction_service.extract_from_file(file_content, schema_dict)
         
         return jsonify({
             'success': True,
             'data': results,
             'filename': file.filename,
-            'viewports': viewports,
-            'extraction_type': extraction_type
+            'viewports': viewports
         })
         
     except Exception as e:
         print(f"Document extraction error: {str(e)}")
-        return jsonify({'success': False, 'error': str(e)})
-
-
-@blueprint.route('/extract_document_basic', methods=['POST'])
-def extract_document_basic():
-    """
-    Handle basic document extraction without position information
-    """
-    try:
-        # Get uploaded file
-        if 'file' not in request.files:
-            return jsonify({'success': False, 'error': 'No file uploaded'})
-        
-        file = request.files['file']
-        if file.filename == '':
-            return jsonify({'success': False, 'error': 'No file selected'})
-        
-        # Get schema only (no viewports needed for basic extraction)
-        schema_json = request.form.get('schema', '[]')
-        schema = json.loads(schema_json)
-        
-        # Read file content
-        file_content = file.read()
-        
-        # Initialize the extraction service
-        from apps.services.extraction_service import DocumentExtractionService
-        extraction_service = DocumentExtractionService()
-        
-        # Convert schema format for extraction service
-        schema_dict = {
-            'fields': schema
-        }
-        
-        # Extract data without position information
-        results = extraction_service.extract_without_position(file_content, schema_dict)
-        
-        return jsonify({
-            'success': True,
-            'data': results,
-            'filename': file.filename,
-            'extraction_type': 'basic'
-        })
-        
-    except Exception as e:
-        print(f"Basic document extraction error: {str(e)}")
         return jsonify({'success': False, 'error': str(e)})
 
 
@@ -360,51 +304,6 @@ def route_template(template):
         return render_template('home/page-500.html'), 500
 
 
-# Page to list created extraction templates (from pdf_extraction_templates)
-@blueprint.route('/extractions')
-@login_required
-def extractions_list():
-    """Render a page listing created PDF extraction templates and their fields"""
-    try:
-        # Query templates and their fields using raw SQL to avoid missing models
-        sql_templates = "SELECT id, name, description, is_position_based, created_at FROM dbo.pdf_extraction_templates ORDER BY created_at DESC"
-        templates = []
-        with db.engine.connect() as conn:
-            res = conn.execute(sql_templates)
-            for row in res:
-                tid = row['id']
-                # fetch fields for this template
-                sql_fields = "SELECT id, name, field_type, is_required, is_unique, properties_json, sort_order FROM dbo.pdf_extraction_fields WHERE template_id = ? ORDER BY sort_order"
-                fields = []
-                # use parameterized query compatible with pyodbc
-                fres = conn.execute(sql_fields, (str(tid),))
-                for f in fres:
-                    fields.append({
-                        'id': f['id'],
-                        'name': f['name'],
-                        'field_type': f['field_type'],
-                        'is_required': f['is_required'],
-                        'is_unique': f['is_unique'],
-                        'properties_json': f['properties_json'],
-                        'sort_order': f['sort_order']
-                    })
-
-                templates.append({
-                    'id': tid,
-                    'name': row['name'],
-                    'description': row['description'],
-                    'is_position_based': row['is_position_based'],
-                    'created_at': row['created_at'],
-                    'fields': fields
-                })
-
-        return render_template('home/extractions.html', templates=templates, segment='extractions')
-
-    except Exception as e:
-        print('Error loading extractions list:', str(e))
-        return render_template('home/page-500.html'), 500
-
-
 # Helper - Extract current page name from request
 def get_segment(request):
 
@@ -419,183 +318,3 @@ def get_segment(request):
 
     except:
         return None
-
-
-# API Endpoints for PDF Extraction Templates
-@blueprint.route('/api/templates', methods=['GET'])
-@login_required
-def get_extraction_templates():
-    """Get all extraction templates for the current user"""
-    templates = ExtractionTemplate.query.filter_by(
-        user_id=current_user.id, 
-        is_active=True
-    ).order_by(ExtractionTemplate.updated_at.desc()).all()
-    
-    return jsonify({
-        'success': True,
-        'templates': [template.to_dict() for template in templates]
-    })
-
-
-@blueprint.route('/api/templates', methods=['POST'])
-@login_required 
-def create_extraction_template():
-    """Create a new extraction template"""
-    try:
-        data = request.get_json()
-        
-        # Create template
-        template = ExtractionTemplate(
-            name=data.get('name'),
-            description=data.get('description'),
-            user_id=current_user.id,
-            document_metadata=data.get('document_metadata')
-        )
-        db.session.add(template)
-        db.session.flush()  # Get the template ID
-        
-        # Create fields
-        for field_data in data.get('fields', []):
-            field = ExtractionField(
-                template_id=template.id,
-                name=field_data.get('name'),
-                field_type=field_data.get('type'),
-                description=field_data.get('description'),
-                is_required=field_data.get('is_required', False),
-                order_index=field_data.get('order_index', 0),
-                position_data=field_data.get('position')
-            )
-            db.session.add(field)
-            db.session.flush()  # Get the field ID
-            
-            # Create subfields for table types
-            if field_data.get('type') == 'table':
-                for subfield_data in field_data.get('subfields', []):
-                    subfield = ExtractionSubfield(
-                        field_id=field.id,
-                        name=subfield_data.get('name'),
-                        field_type=subfield_data.get('type'),
-                        description=subfield_data.get('description'),
-                        order_index=subfield_data.get('order_index', 0)
-                    )
-                    db.session.add(subfield)
-        
-        db.session.commit()
-        
-        return jsonify({
-            'success': True,
-            'template': template.to_dict(),
-            'message': 'Template created successfully'
-        })
-        
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
-
-
-@blueprint.route('/api/templates/<int:template_id>', methods=['GET'])
-@login_required
-def get_extraction_template(template_id):
-    """Get a specific extraction template"""
-    template = ExtractionTemplate.query.filter_by(
-        id=template_id,
-        user_id=current_user.id
-    ).first()
-    
-    if not template:
-        return jsonify({
-            'success': False,
-            'error': 'Template not found'
-        }), 404
-        
-    return jsonify({
-        'success': True,
-        'template': template.to_dict()
-    })
-
-
-@blueprint.route('/api/templates/<int:template_id>/results', methods=['POST'])
-@login_required
-def save_extraction_result(template_id):
-    """Save extraction results"""
-    try:
-        data = request.get_json()
-        
-        result = ExtractionResult(
-            template_id=template_id,
-            user_id=current_user.id,
-            original_filename=data.get('filename'),
-            file_size=data.get('file_size'),
-            file_type=data.get('file_type'),
-            file_hash=data.get('file_hash'),
-            extraction_method=data.get('extraction_method'),
-            processing_time_ms=data.get('processing_time_ms'),
-            extracted_data=data.get('extracted_data'),
-            extraction_metadata=data.get('extraction_metadata'),
-            status=data.get('status', 'completed'),
-            error_message=data.get('error_message')
-        )
-        
-        db.session.add(result)
-        db.session.commit()
-        
-        return jsonify({
-            'success': True,
-            'result': result.to_dict(),
-            'message': 'Extraction result saved successfully'
-        })
-        
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
-
-
-@blueprint.route('/api/extractions/saved', methods=['GET'])
-@login_required
-def get_saved_extractions():
-    """Get user's saved extraction configurations"""
-    saved = SavedExtraction.query.filter_by(
-        user_id=current_user.id
-    ).order_by(SavedExtraction.last_used_at.desc().nullslast(), SavedExtraction.created_at.desc()).all()
-    
-    return jsonify({
-        'success': True,
-        'saved_extractions': [config.to_dict() for config in saved]
-    })
-
-
-@blueprint.route('/api/extractions/saved', methods=['POST']) 
-@login_required
-def save_extraction_config():
-    """Save an extraction configuration for reuse"""
-    try:
-        data = request.get_json()
-        
-        saved = SavedExtraction(
-            user_id=current_user.id,
-            name=data.get('name'),
-            description=data.get('description'),
-            schema_config=data.get('schema_config')
-        )
-        
-        db.session.add(saved)
-        db.session.commit()
-        
-        return jsonify({
-            'success': True,
-            'saved_extraction': saved.to_dict(),
-            'message': 'Extraction configuration saved successfully'
-        })
-        
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500

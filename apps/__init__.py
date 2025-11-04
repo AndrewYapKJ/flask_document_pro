@@ -56,9 +56,4 @@ def create_app(config):
     register_blueprints(app)
     app.register_blueprint(github_blueprint, url_prefix="/login")    
     configure_database(app)
-    
-    # Import models to register them with SQLAlchemy
-    from apps.models import extraction_models
-    from apps.authentication import models
-    
     return app

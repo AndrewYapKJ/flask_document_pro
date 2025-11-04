@@ -8,7 +8,8 @@ class ExtractionResult(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     filename = db.Column(db.String(512), nullable=True)
     data = db.Column(db.JSON, nullable=False)
+    extractor_id = db.Column(db.Integer, db.ForeignKey('extractors.id'), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     def __repr__(self):
-        return f"<ExtractionResult id={self.id} filename={self.filename} created_at={self.created_at}>"
+        return f"<ExtractionResult id={self.id} filename={self.filename} extractor_id={self.extractor_id} created_at={self.created_at}>"

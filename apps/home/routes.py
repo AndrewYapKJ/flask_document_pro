@@ -94,12 +94,28 @@ def extract_document():
         if file.filename == '':
             return jsonify({'success': False, 'error': 'No file selected'})
         
-        # Get schema and viewports
+        # Get schema and viewports or an extractor_id referencing a stored schema
         schema_json = request.form.get('schema', '[]')
         viewports_json = request.form.get('viewports', '[]')
-        
-        schema = json.loads(schema_json)
+        extractor_id = request.form.get('extractor_id')
+
         viewports = json.loads(viewports_json)
+
+        schema = None
+        if extractor_id:
+            try:
+                from apps.models.extractor import Extractor
+                from apps import db
+
+                extractor = db.session.get(Extractor, int(extractor_id))
+                if extractor:
+                    schema = extractor.schema
+                else:
+                    return jsonify({'success': False, 'error': f'Extractor id {extractor_id} not found'})
+            except Exception as e:
+                return jsonify({'success': False, 'error': str(e)})
+        else:
+            schema = json.loads(schema_json)
         
         # Read file content
         file_content = file.read()
@@ -122,7 +138,8 @@ def extract_document():
 
             record = ExtractionResult(
                 filename=file.filename,
-                data=results
+                data=results,
+                extractor_id=int(extractor_id) if extractor_id else None
             )
             db.session.add(record)
             db.session.commit()
@@ -215,6 +232,35 @@ def api_extract():
     except Exception as e:
         print(f"Extraction error: {str(e)}")
         return jsonify({'success': False, 'error': str(e)})
+
+
+@blueprint.route('/api/extractors', methods=['POST'])
+def api_create_extractor():
+    """
+    Create a new extractor (bot) with a name and schema JSON
+    """
+    try:
+        name = request.form.get('name') or request.json.get('name')
+        description = request.form.get('description') or request.json.get('description')
+        schema_json = request.form.get('schema') or (request.json.get('schema') if request.is_json else None)
+
+        if not name or not schema_json:
+            return jsonify({'success': False, 'error': 'name and schema are required'}), 400
+
+        schema = schema_json if isinstance(schema_json, dict) else json.loads(schema_json)
+
+        from apps.models.extractor import Extractor
+        from apps import db
+
+        extractor = Extractor(name=name, description=description, schema=schema)
+        db.session.add(extractor)
+        db.session.commit()
+
+        return jsonify({'success': True, 'extractor': extractor.to_dict()})
+
+    except Exception as e:
+        print(f"Create extractor error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 def generate_dummy_data(schema):

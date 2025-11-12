@@ -18,11 +18,10 @@ def index():
     return render_template('home/index.html', segment='index')
 
 
-@blueprint.route('/index/extractor-extract')
+@blueprint.route('/index/extractor-invoice')
 @login_required
 def extractor_extract():
-    return render_template('home/extractor-extract.html', segment='extractor-extract')
-
+    return render_template('home/extractor-invoice.html', segment='extractor-invoice')
 
 @blueprint.route('/index/extractor-viewport')
 @login_required  

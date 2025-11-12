@@ -29,6 +29,10 @@ def extractor_extract():
 def extractor_extract_viewport():
     return render_template('home/extractor-viewport.html', segment='extractor-viewport')
 
+@blueprint.route('/index/extractor-list')
+@login_required  
+def extractor_list():
+    return render_template('home/extractor-list.html', segment='extractor-list')
 
 @blueprint.route('/create_bot', methods=['POST'])
 def create_bot():
@@ -253,8 +257,25 @@ def api_create_extractor():
         from apps import db
 
         extractor = Extractor(name=name, description=description, schema=schema)
-        db.session.add(extractor)
-        db.session.commit()
+
+        # Generate a unique uid and attempt to commit. If a collision occurs (very rare with UUID4),
+        # retry a few times before failing.
+        from sqlalchemy.exc import IntegrityError
+
+        max_attempts = 5
+        for attempt in range(max_attempts):
+            extractor.uid = Extractor.generate_uid()
+            db.session.add(extractor)
+            try:
+                db.session.commit()
+                break
+            except IntegrityError as ie:
+                # UID collision or other unique constraint violation; rollback and retry UID
+                db.session.rollback()
+                if attempt == max_attempts - 1:
+                    raise ie
+                # otherwise, try again with a new uid
+                continue
 
         return jsonify({'success': True, 'extractor': extractor.to_dict()})
 

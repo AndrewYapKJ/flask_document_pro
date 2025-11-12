@@ -1,4 +1,5 @@
 from datetime import datetime
+import uuid
 from apps import db
 
 
@@ -6,6 +7,8 @@ class Extractor(db.Model):
     __tablename__ = 'extractors'
 
     id = db.Column(db.Integer, primary_key=True)
+    # uid: unique identifier generated on create (exposed to clients)
+    uid = db.Column(db.String(36), unique=True, nullable=False, index=True)
     name = db.Column(db.String(256), nullable=False)
     description = db.Column(db.Text, nullable=True)
     schema = db.Column(db.JSON, nullable=False)
@@ -14,6 +17,7 @@ class Extractor(db.Model):
     def to_dict(self):
         return {
             'id': self.id,
+            'uid': self.uid,
             'name': self.name,
             'description': self.description,
             'schema': self.schema,
@@ -21,4 +25,9 @@ class Extractor(db.Model):
         }
 
     def __repr__(self):
-        return f"<Extractor id={self.id} name={self.name}>"
+        return f"<Extractor id={self.id} uid={self.uid} name={self.name}>"
+
+    @staticmethod
+    def generate_uid():
+        """Generate a short UUID string for the extractor uid."""
+        return str(uuid.uuid4())

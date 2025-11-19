@@ -1171,30 +1171,74 @@ class ExtractorManager {
         // Show loading state
         this.showExtractionLoading();
         
+        // First, save the extractor template to get an extractor_id
+        this.saveExtractorTemplate(schemaConfig)
+            .then(extractorId => {
+                // Now perform extraction with the extractor_id
+                return this.performExtraction(extractorId, schemaConfig);
+            })
+            .catch(error => {
+                this.hideExtractionLoading();
+                console.error('Extraction error:', error);
+                alert('Extraction failed. Please try again.');
+            });
+    }
+
+    async saveExtractorTemplate(schemaConfig) {
+        // Generate auto name with timestamp and field count
+        const timestamp = new Date().toISOString().split('T')[0];
+        const fieldCount = schemaConfig.fields ? schemaConfig.fields.length : 0;
+        const autoName = `Invoice_Extractor_${timestamp}_${fieldCount}fields`;
+        
+        const response = await fetch('/api/extractors', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                name: autoName,
+                description: 'Invoice extraction template',
+                schema: schemaConfig
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (!data.success) {
+            throw new Error(data.error || 'Failed to save extractor template');
+        }
+        
+        console.log('Extractor template saved with ID:', data.extractor.id);
+        return data.extractor.id;
+    }
+
+    async performExtraction(extractorId, schemaConfig) {
         // Create FormData for file upload
         const formData = new FormData();
         formData.append('file', this.selectedFile);
         formData.append('schema', JSON.stringify(schemaConfig));
+        formData.append('extractor_id', extractorId);
         
-        // Send extraction request
-        fetch('/api/extract', {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
+        try {
+            // Send extraction request
+            const response = await fetch('/api/extract', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const data = await response.json();
+            
             this.hideExtractionLoading();
+            
             if (data.success) {
                 this.renderExtractionResults(data.results);
             } else {
                 alert('Extraction failed: ' + (data.error || 'Unknown error'));
             }
-        })
-        .catch(error => {
+        } catch (error) {
             this.hideExtractionLoading();
-            console.error('Extraction error:', error);
-            alert('Extraction failed. Please try again.');
-        });
+            throw error;
+        }
     }
 
     getCurrentSchemaConfig() {

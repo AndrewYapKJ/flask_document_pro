@@ -228,6 +228,76 @@ def api_extract():
         return jsonify({'success': False, 'error': str(e)})
 
 
+@blueprint.route('/api/extract/<extractor_uid>', methods=['POST'])
+def api_extract_by_uid(extractor_uid):
+    """
+    API endpoint to extract document using saved extractor template by UUID
+    
+    Usage:
+    POST /api/extract/<extractor_uid>
+    Body: multipart/form-data with 'file' field (PDF or image)
+    
+    Returns:
+    {
+        "success": true,
+        "results": {...},
+        "filename": "document.pdf",
+        "extractor": {
+            "uid": "...",
+            "name": "...",
+            "schema": {...}
+        }
+    }
+    """
+    try:
+        from apps.models.extractor import Extractor
+        from apps.services.extraction_service import DocumentExtractionService
+        
+        # Find extractor by UID
+        extractor = Extractor.query.filter_by(uid=extractor_uid).first()
+        
+        if not extractor:
+            return jsonify({'success': False, 'error': f'Extractor with UID {extractor_uid} not found'}), 404
+        
+         
+        # Get uploaded file
+        if 'file' not in request.files:
+            return jsonify({'success': False, 'error': 'No file uploaded'}), 400
+        
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'success': False, 'error': 'No file selected'}), 400
+        
+        # Read file content
+        file_content = file.read()
+        
+        # Use the extractor's schema
+        schema = extractor.schema
+        
+        # Initialize the extraction service
+        extraction_service = DocumentExtractionService()
+        
+        # Extract data using OpenAI
+        results = extraction_service.extract_from_file(file_content, schema)
+        
+        return jsonify({
+            'success': True,
+            'results': results,
+            'filename': file.filename,
+            'extractor': {
+                'uid': extractor.uid,
+                'name': extractor.name,
+                'schema': extractor.schema
+            }
+        })
+        
+    except Exception as e:
+        print(f"Extraction error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @blueprint.route('/api/extractors', methods=['POST'])
 def api_create_extractor():
     """

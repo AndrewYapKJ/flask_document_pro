@@ -31,7 +31,13 @@ def extractor_extract_viewport():
 @blueprint.route('/index/extractor-list')
 @login_required  
 def extractor_list():
-    return render_template('home/extractor-list.html', segment='extractor-list')
+    from apps.models.extractor import Extractor
+    from apps import db
+    
+    # Fetch extractors belonging to the current user, ordered by creation date (newest first)
+    extractors = Extractor.query.filter_by(user_id=current_user.id).order_by(Extractor.created_at.desc()).all()
+    
+    return render_template('home/extractor-list.html', segment='extractor-list', workflows=extractors)
 
 @blueprint.route('/create_bot', methods=['POST'])
 def create_bot():
@@ -268,6 +274,41 @@ def api_create_extractor():
 
     except Exception as e:
         print(f"Create extractor error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@blueprint.route('/api/extractors/<int:extractor_id>', methods=['PUT'])
+@login_required
+def api_update_extractor(extractor_id):
+    """
+    Update an extractor's name (only the owner can update)
+    """
+    try:
+        from apps.models.extractor import Extractor
+        from apps import db
+        
+        # Find the extractor
+        extractor = Extractor.query.filter_by(id=extractor_id, user_id=current_user.id).first()
+        
+        if not extractor:
+            return jsonify({'success': False, 'error': 'Extractor not found or you do not have permission to edit it'}), 404
+        
+        # Get new name from request
+        data = request.get_json()
+        new_name = data.get('name', '').strip()
+        
+        if not new_name:
+            return jsonify({'success': False, 'error': 'Name cannot be empty'}), 400
+        
+        # Update the name
+        extractor.name = new_name
+        db.session.commit()
+        
+        return jsonify({'success': True, 'extractor': extractor.to_dict()})
+    
+    except Exception as e:
+        print(f"Update extractor error: {e}")
+        db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 

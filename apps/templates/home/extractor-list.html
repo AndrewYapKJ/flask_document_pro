@@ -7,6 +7,37 @@
 <link rel="stylesheet" href="/static/assets/css/dark.css">
 <link rel="stylesheet" href="/static/assets/css/extractor.css">
 <link rel="stylesheet" href="/static/assets/css/extractor-dark.css">
+<style>
+    .action-buttons {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+    }
+    .action-buttons .btn {
+        min-width: 36px;
+        height: 36px;
+        padding: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 6px;
+        transition: all 0.2s ease;
+    }
+    .action-buttons .btn i {
+        font-size: 16px;
+        margin: 0;
+    }
+    .action-buttons .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+    .workflow-name-edit input {
+        max-width: 300px;
+    }
+    table td {
+        vertical-align: middle !important;
+    }
+</style>
 {% endblock stylesheets %}
 {% block content %}
 
@@ -22,33 +53,54 @@
                                     <h2 class="fw-bold mb-1">Workflows</h2>
                                     <p class="text-muted mb-3">Manage your extraction workflows</p>
                                     <div class="card mb-3 shadow-sm" style="padding: 1.5rem 2rem;">
-                                        <input type="text" class="form-control" placeholder="Search workflow name..." style="max-width:400px;">
+                                        <input type="text" id="searchWorkflow" class="form-control" placeholder="Search workflow name..." style="max-width:400px;" onkeyup="searchWorkflows()">
                                     </div>
                                     <div class="card shadow-sm" style="padding: 0;">
                                         <div class="table-responsive">
-                                            <table class="table align-middle mb-0 w-100">
+                                            <table class="table align-middle mb-0 w-100" id="workflowTable">
                                                 <thead class="">
                                                     <tr>
                                                         <th class="fw-semibold text-muted">WORKFLOW NAME</th>
                                                         <th class="fw-semibold text-muted">WORKFLOW ID</th>
                                                         <th class="fw-semibold text-muted">CREATED AT</th>
-                                                        <th class="fw-semibold text-muted">DOCUMENTS</th>
+                                                        <th class="fw-semibold text-muted">ACTIONS</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
+                                                    {% if workflows %}
                                                     {% for wf in workflows %}
                                                     <tr>
                                                         <td>
-                                                            <a href="#" class="text-c-blue fw-semibold">{{ wf.name }}</a>
+                                                            <span class="workflow-name-display-{{ wf.id }} text-c-blue fw-semibold">{{ wf.name }}</span>
+                                                            <input type="text" class="form-control workflow-name-edit-{{ wf.id }}" value="{{ wf.name }}" style="display: none; max-width: 300px;">
                                                         </td>
                                                         <td>
-                                                            <span class="text-muted small">{{ wf.id }}</span>
-                                                            <a href="#" class="ms-2" title="Copy"><i class="feather icon-copy"></i></a>
+                                                            <span class="text-muted small">{{ wf.uid }}</span>
+                                                            <a href="#" class="ms-2" title="Copy" onclick="copyToClipboard('{{ wf.uid }}'); return false;"><i class="feather icon-copy"></i></a>
                                                         </td>
-                                                        <td>{{ wf.created_at }}</td>
-                                                        <td>{{ wf.documents if wf.documents else '-' }}</td>
+                                                        <td>{{ wf.created_at.strftime('%Y-%m-%d %H:%M') if wf.created_at else '-' }}</td>
+                                                        <td>
+                                                            <div class="action-buttons">
+                                                                <button class="btn btn-sm btn-outline-primary edit-btn-{{ wf.id }}" onclick="editWorkflow({{ wf.id }})" title="Edit">
+                                                                    <i class="feather icon-edit"></i>
+                                                                </button>
+                                                                <button class="btn btn-sm btn-success save-btn-{{ wf.id }}" onclick="saveWorkflow({{ wf.id }})" style="display: none;" title="Save">
+                                                                    <i class="feather icon-check"></i>
+                                                                </button>
+                                                                <button class="btn btn-sm btn-secondary cancel-btn-{{ wf.id }}" onclick="cancelEdit({{ wf.id }})" style="display: none;" title="Cancel">
+                                                                    <i class="feather icon-x"></i>
+                                                                </button>
+                                                            </div>
+                                                        </td>
                                                     </tr>
                                                     {% endfor %}
+                                                    {% else %}
+                                                    <tr>
+                                                        <td colspan="4" class="text-center text-muted py-4">
+                                                            No workflows found. Create your first extraction workflow!
+                                                        </td>
+                                                    </tr>
+                                                    {% endif %}
                                                 </tbody>
                                             </table>
                                         </div>
@@ -63,4 +115,105 @@
     </div>
 </div>
 {% endblock %}
-{% block javascripts %}{% endblock javascripts %}
+{% block javascripts %}
+<script>
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(function() {
+        // Show a success message
+        alert('Workflow ID copied to clipboard!');
+    }, function(err) {
+        console.error('Could not copy text: ', err);
+    });
+}
+
+function searchWorkflows() {
+    const input = document.getElementById('searchWorkflow');
+    const filter = input.value.toUpperCase();
+    const table = document.getElementById('workflowTable');
+    const tr = table.getElementsByTagName('tr');
+
+    // Loop through all table rows (except the header)
+    for (let i = 1; i < tr.length; i++) {
+        const td = tr[i].getElementsByTagName('td')[0]; // Get the first column (workflow name)
+        if (td) {
+            const txtValue = td.textContent || td.innerText;
+            if (txtValue.toUpperCase().indexOf(filter) > -1) {
+                tr[i].style.display = '';
+            } else {
+                tr[i].style.display = 'none';
+            }
+        }
+    }
+}
+
+function editWorkflow(workflowId) {
+    // Hide display, show input
+    document.querySelector('.workflow-name-display-' + workflowId).style.display = 'none';
+    document.querySelector('.workflow-name-edit-' + workflowId).style.display = 'block';
+    
+    // Hide edit button, show save/cancel buttons
+    document.querySelector('.edit-btn-' + workflowId).style.display = 'none';
+    document.querySelector('.save-btn-' + workflowId).style.display = 'inline-block';
+    document.querySelector('.cancel-btn-' + workflowId).style.display = 'inline-block';
+}
+
+function cancelEdit(workflowId) {
+    // Show display, hide input
+    document.querySelector('.workflow-name-display-' + workflowId).style.display = 'block';
+    document.querySelector('.workflow-name-edit-' + workflowId).style.display = 'none';
+    
+    // Show edit button, hide save/cancel buttons
+    document.querySelector('.edit-btn-' + workflowId).style.display = 'inline-block';
+    document.querySelector('.save-btn-' + workflowId).style.display = 'none';
+    document.querySelector('.cancel-btn-' + workflowId).style.display = 'none';
+    
+    // Reset input value to original
+    const originalName = document.querySelector('.workflow-name-display-' + workflowId).textContent;
+    document.querySelector('.workflow-name-edit-' + workflowId).value = originalName;
+}
+
+function saveWorkflow(workflowId) {
+    const newName = document.querySelector('.workflow-name-edit-' + workflowId).value.trim();
+    
+    if (!newName) {
+        alert('Workflow name cannot be empty!');
+        return;
+    }
+    
+    // Send update request to server
+    fetch('/api/extractors/' + workflowId, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            name: newName
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Update display with new name
+            document.querySelector('.workflow-name-display-' + workflowId).textContent = newName;
+            
+            // Show display, hide input
+            document.querySelector('.workflow-name-display-' + workflowId).style.display = 'block';
+            document.querySelector('.workflow-name-edit-' + workflowId).style.display = 'none';
+            
+            // Show edit button, hide save/cancel buttons
+            document.querySelector('.edit-btn-' + workflowId).style.display = 'inline-block';
+            document.querySelector('.save-btn-' + workflowId).style.display = 'none';
+            document.querySelector('.cancel-btn-' + workflowId).style.display = 'none';
+            
+            alert('Workflow name updated successfully!');
+        } else {
+            alert('Error updating workflow: ' + (data.error || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error updating workflow: ' + error);
+    });
+}
+</script>
+{% endblock javascripts %}

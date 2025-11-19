@@ -9,6 +9,7 @@ class Extractor(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     # uid: unique identifier generated on create (exposed to clients)
     uid = db.Column(db.String(36), unique=True, nullable=False, index=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True, index=True)
     name = db.Column(db.String(256), nullable=False)
     description = db.Column(db.Text, nullable=True)
     schema = db.Column(db.JSON, nullable=False)
@@ -18,6 +19,7 @@ class Extractor(db.Model):
         return {
             'id': self.id,
             'uid': self.uid,
+            'user_id': self.user_id,
             'name': self.name,
             'description': self.description,
             'schema': self.schema,

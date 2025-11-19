@@ -5,7 +5,7 @@ Copyright (c) 2019 - present AppSeed.us
 
 from apps.home import blueprint
 from flask import render_template, request, jsonify
-from flask_login import login_required
+from flask_login import login_required, current_user
 from jinja2 import TemplateNotFound
 import json
 import os
@@ -240,7 +240,10 @@ def api_create_extractor():
         from apps.models.extractor import Extractor
         from apps import db
 
-        extractor = Extractor(name=name, description=description, schema=schema)
+        # Get user_id if user is authenticated
+        user_id = current_user.id if current_user.is_authenticated else None
+
+        extractor = Extractor(name=name, description=description, schema=schema, user_id=user_id)
 
         # Generate a unique uid and attempt to commit. If a collision occurs (very rare with UUID4),
         # retry a few times before failing.

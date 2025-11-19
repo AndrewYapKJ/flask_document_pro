@@ -55,7 +55,6 @@ def create_app(config):
     register_extensions(app)
     # Import models so they are registered with SQLAlchemy before creating tables
     try:
-        import apps.models.extraction_result  # noqa: F401
         import apps.models.extractor  # noqa: F401
     except Exception:
         pass

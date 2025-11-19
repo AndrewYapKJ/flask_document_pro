@@ -1622,6 +1622,8 @@ class ExtractorManager {
     handleExtract(e) {
         e.preventDefault();
         
+        console.log('handleExtract called');
+        
         // Check if a file is selected
         if (!this.selectedFile) {
             alert('Please select a file first.');
@@ -1638,10 +1640,71 @@ class ExtractorManager {
         // Show loading state
         this.showExtractionLoading();
         
+        // First, save the extractor template to database
+        console.log('Calling saveExtractorTemplate...');
+        this.saveExtractorTemplate(schemaConfig)
+            .then(extractorData => {
+                console.log('Extractor template saved successfully:', extractorData);
+                console.log('Extractor ID:', extractorData.extractor.id);
+                console.log('Extractor UID:', extractorData.extractor.uid);
+                
+                // Now perform extraction with the saved extractor ID
+                console.log('Calling performExtraction...');
+                return this.performExtraction(schemaConfig, extractorData.extractor.id);
+            })
+            .then(extractionResult => {
+                console.log('Extraction completed successfully:', extractionResult);
+            })
+            .catch(error => {
+                this.hideExtractionLoading();
+                console.error('Error during extraction process:', error);
+                console.error('Error stack:', error.stack);
+                alert('Extraction failed: ' + error.message);
+            });
+    }
+    
+    async saveExtractorTemplate(schemaConfig) {
+        // Generate a name for the extractor based on timestamp or field names
+        const fieldNames = schemaConfig.fields.map(f => f.name).join(', ');
+        const extractorName = `Extractor_${new Date().toISOString().split('T')[0]}_${schemaConfig.fields.length}fields`;
+        const extractorDescription = `Auto-generated extractor with fields: ${fieldNames.substring(0, 100)}`;
+        
+        // Prepare the schema data for storage
+        const extractorSchema = {
+            fields: schemaConfig.fields,
+            documentMetadata: schemaConfig.documentMetadata
+        };
+        
+        const formData = new FormData();
+        formData.append('name', extractorName);
+        formData.append('description', extractorDescription);
+        formData.append('schema', JSON.stringify(extractorSchema));
+        
+        console.log('Saving extractor template:', extractorName);
+        
+        const response = await fetch('/api/extractors', {
+            method: 'POST',
+            body: formData
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to save extractor template');
+        }
+        
+        const data = await response.json();
+        if (!data.success) {
+            throw new Error(data.error || 'Failed to save extractor template');
+        }
+        
+        return data;
+    }
+    
+    async performExtraction(schemaConfig, extractorId) {
         // Create FormData for file upload
         const formData = new FormData();
         formData.append('file', this.selectedFile);
         formData.append('schema', JSON.stringify(schemaConfig));
+        formData.append('extractor_id', extractorId);
         
         // Add additional metadata for OpenAI processing
         formData.append('extractionMetadata', JSON.stringify({
@@ -1652,25 +1715,25 @@ class ExtractorManager {
             canvasInfo: schemaConfig.documentMetadata?.canvasDimensions
         }));
         
+        console.log('Performing extraction with extractor ID:', extractorId);
+        
         // Send extraction request
-        fetch('/api/extract', {
+        const response = await fetch('/api/extract', {
             method: 'POST',
             body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            this.hideExtractionLoading();
-            if (data.success) {
-                this.renderExtractionResults(data.results);
-            } else {
-                alert('Extraction failed: ' + (data.error || 'Unknown error'));
-            }
-        })
-        .catch(error => {
-            this.hideExtractionLoading();
-            console.error('Extraction error:', error);
-            alert('Extraction failed. Please try again.');
         });
+        
+        const data = await response.json();
+        
+        this.hideExtractionLoading();
+        
+        if (data.success) {
+            this.renderExtractionResults(data.results);
+        } else {
+            throw new Error(data.error || 'Extraction failed');
+        }
+        
+        return data;
     }
 
     getCurrentSchemaConfig() {
@@ -1918,9 +1981,29 @@ class ExtractorManager {
     createFieldResultHTML(fieldName, value, schemaMapping = {}) {
         // Use schema field name if available, otherwise format the fieldName
         const displayName = fieldName;
-        const displayValue = value !== null && value !== undefined && value !== '' 
-            ? String(value) 
-            : 'No value extracted';
+        
+        // Handle different value types
+        let displayValue;
+        if (value === null || value === undefined || value === '') {
+            displayValue = 'No value extracted';
+        } else if (typeof value === 'object' && !Array.isArray(value)) {
+            // Check if object has a description field (OpenAI structured output format)
+            if (value.description !== undefined) {
+                displayValue = String(value.description);
+            } else {
+                // If it's an object without description, format it as JSON
+                try {
+                    displayValue = JSON.stringify(value, null, 2);
+                } catch (e) {
+                    displayValue = String(value);
+                }
+            }
+        } else if (Array.isArray(value)) {
+            // If it's an array, show count or first few items
+            displayValue = `Array (${value.length} items)`;
+        } else {
+            displayValue = String(value);
+        }
         
         const hasValue = value !== null && value !== undefined && value !== '';
         
@@ -2922,6 +3005,11 @@ class ExtractorManager {
 
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
+    // Check if initialization is disabled (for migration purposes)
+    if (window.DISABLE_ORIGINAL_EXTRACTOR) {
+        console.log('Original ExtractorManager initialization disabled');
+        return;
+    }
     window.extractorManager = new ExtractorManager();
 });
 

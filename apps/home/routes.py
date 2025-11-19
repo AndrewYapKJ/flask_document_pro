@@ -134,29 +134,12 @@ def extract_document():
         
         # Extract data using OpenAI
         results = extraction_service.extract_from_file(file_content, schema_dict)
-        # Persist extraction result to database
-        try:
-            from apps.models.extraction_result import ExtractionResult
-            from apps import db
-
-            record = ExtractionResult(
-                filename=file.filename,
-                data=results,
-                extractor_id=int(extractor_id) if extractor_id else None
-            )
-            db.session.add(record)
-            db.session.commit()
-            saved_id = record.id
-        except Exception as e:
-            print(f"Warning: failed to save extraction result: {e}")
-            saved_id = None
 
         return jsonify({
             'success': True,
             'data': results,
             'filename': file.filename,
-            'viewports': viewports,
-            'saved_id': saved_id
+            'viewports': viewports
         })
         
     except Exception as e:
@@ -201,7 +184,7 @@ def extract_text():
 @blueprint.route('/api/extract', methods=['POST'])
 def api_extract():
     """
-    API endpoint to handle document extraction using dummy data
+    API endpoint to handle document extraction and save results
     """
     try:
         # Get uploaded file
@@ -212,11 +195,12 @@ def api_extract():
         if file.filename == '':
             return jsonify({'success': False, 'error': 'No file selected'})
         
-        # Get schema configuration
+        # Get schema configuration and extractor_id
         schema_json = request.form.get('schema', '{}')
         schema = json.loads(schema_json)
+        extractor_id = request.form.get('extractor_id')
         
-                # Read file content
+        # Read file content
         file_content = file.read()
         
         # Initialize the extraction service
@@ -229,7 +213,8 @@ def api_extract():
         return jsonify({
             'success': True,
             'results': results,
-            'filename': file.filename
+            'filename': file.filename,
+            'extractor_id': extractor_id
         })
         
     except Exception as e:

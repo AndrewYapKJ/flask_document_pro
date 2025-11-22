@@ -7,13 +7,12 @@ __pycache__/
 .coverage
 
 # database & logs
-*.db
-*.sqlite3
 *.log
 
 # venv
 env
 venv
+.env
 .venv
 .venv/
 .venv/*
@@ -37,3 +36,8 @@ apps/static/assets/.temp
 apps/static/uploads
 migrations
 
+.env
+
+# Ignore Markdown documentation files (all locations)
+*.md
+**/*.md

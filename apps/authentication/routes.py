@@ -97,8 +97,12 @@ def login():
 
         # Check the password
         if verify_pass(password, user.password):
-
+            
             login_user(user)
+            # Make session permanent so PERMANENT_SESSION_LIFETIME applies
+            from flask import session
+            session.permanent = True
+            
             return redirect(url_for('authentication_blueprint.route_default'))
 
         # Something (user or pass) is not ok

@@ -118,12 +118,73 @@
 {% block javascripts %}
 <script>
 function copyToClipboard(text) {
-    navigator.clipboard.writeText(text).then(function() {
-        // Show a success message
-        alert('Workflow ID copied to clipboard!');
-    }, function(err) {
-        console.error('Could not copy text: ', err);
-    });
+    // Try modern clipboard API first
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function() {
+            showCopySuccess();
+        }, function(err) {
+            // Fallback to old method if modern API fails
+            fallbackCopyToClipboard(text);
+        });
+    } else {
+        // Use fallback method for older browsers or HTTP
+        fallbackCopyToClipboard(text);
+    }
+}
+
+function fallbackCopyToClipboard(text) {
+    // Create a temporary textarea element
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.position = 'fixed';
+    textarea.style.opacity = '0';
+    document.body.appendChild(textarea);
+    
+    // Select and copy the text
+    textarea.select();
+    textarea.setSelectionRange(0, 99999); // For mobile devices
+    
+    try {
+        const successful = document.execCommand('copy');
+        if (successful) {
+            showCopySuccess();
+        } else {
+            showCopyError();
+        }
+    } catch (err) {
+        console.error('Fallback: Could not copy text: ', err);
+        showCopyError();
+    }
+    
+    // Remove the temporary element
+    document.body.removeChild(textarea);
+}
+
+function showCopySuccess() {
+    // Create a toast notification instead of alert
+    const toast = document.createElement('div');
+    toast.innerHTML = '<i class="feather icon-check-circle"></i> Workflow ID copied to clipboard!';
+    toast.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #28a745; color: white; padding: 12px 20px; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 9999; display: flex; align-items: center; gap: 8px; font-weight: 500;';
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.style.transition = 'opacity 0.3s ease';
+        toast.style.opacity = '0';
+        setTimeout(() => document.body.removeChild(toast), 300);
+    }, 2000);
+}
+
+function showCopyError() {
+    const toast = document.createElement('div');
+    toast.innerHTML = '<i class="feather icon-alert-circle"></i> Failed to copy. Please copy manually.';
+    toast.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #dc3545; color: white; padding: 12px 20px; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 9999; display: flex; align-items: center; gap: 8px; font-weight: 500;';
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.style.transition = 'opacity 0.3s ease';
+        toast.style.opacity = '0';
+        setTimeout(() => document.body.removeChild(toast), 300);
+    }, 3000);
 }
 
 function searchWorkflows() {

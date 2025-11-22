@@ -232,9 +232,15 @@ def api_extract():
 def api_extract_by_uid(extractor_uid):
     """
     API endpoint to extract document using saved extractor template by UUID
+    Requires API key authentication via X-API-Key header
+    
+    Supports two types of authentication:
+    1. Master API Key (set in config/environment) - bypasses user ownership checks
+    2. User API Key (generated per user) - checks extractor ownership
     
     Usage:
     POST /api/extract/<extractor_uid>
+    Headers: X-API-Key: your-api-key-here
     Body: multipart/form-data with 'file' field (PDF or image)
     
     Returns:
@@ -250,8 +256,34 @@ def api_extract_by_uid(extractor_uid):
     }
     """
     try:
+        from flask import current_app
+        from apps.authentication.models import Users
         from apps.models.extractor import Extractor
         from apps.services.extraction_service import DocumentExtractionService
+        
+        # Check for API key in headers
+        api_key = request.headers.get('X-API-Key')
+        
+        if not api_key:
+            return jsonify({
+                'success': False, 
+                'error': 'API key required. Please provide X-API-Key header'
+            }), 401
+        
+        # Check if it's the master API key
+        is_master_key = (api_key == current_app.config.get('MASTER_API_KEY'))
+        
+        # If not master key, validate as user API key
+        if not is_master_key:
+            user = Users.query.filter_by(api_key=api_key).first()
+            
+            if not user:
+                return jsonify({
+                    'success': False, 
+                    'error': 'Invalid API key'
+                }), 401
+        else:
+            user = None  # Master key doesn't need a user
         
         # Find extractor by UID
         extractor = Extractor.query.filter_by(uid=extractor_uid).first()
@@ -259,6 +291,13 @@ def api_extract_by_uid(extractor_uid):
         if not extractor:
             return jsonify({'success': False, 'error': f'Extractor with UID {extractor_uid} not found'}), 404
         
+        # Check if extractor belongs to the user (skip check for master key)
+        if not is_master_key and user:
+            if extractor.user_id is not None and extractor.user_id != user.id:
+                return jsonify({
+                    'success': False, 
+                    'error': 'You do not have permission to use this extractor'
+                }), 403
          
         # Get uploaded file
         if 'file' not in request.files:
@@ -296,6 +335,45 @@ def api_extract_by_uid(extractor_uid):
         import traceback
         traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@blueprint.route('/api/key', methods=['GET'])
+@login_required
+def get_api_key():
+    """
+    Get or generate API key for the current user
+    """
+    from apps import db
+    
+    # Generate API key if user doesn't have one
+    if not current_user.api_key:
+        import secrets
+        current_user.api_key = secrets.token_urlsafe(32)
+        db.session.commit()
+    
+    return jsonify({
+        'success': True,
+        'api_key': current_user.api_key
+    })
+
+
+@blueprint.route('/api/key/regenerate', methods=['POST'])
+@login_required
+def regenerate_api_key():
+    """
+    Regenerate API key for the current user
+    """
+    from apps import db
+    import secrets
+    
+    current_user.api_key = secrets.token_urlsafe(32)
+    db.session.commit()
+    
+    return jsonify({
+        'success': True,
+        'api_key': current_user.api_key,
+        'message': 'API key regenerated successfully'
+    })
 
 
 @blueprint.route('/api/extractors', methods=['POST'])
@@ -483,6 +561,85 @@ def route_template(template):
 
     except:
         return render_template('home/page-500.html'), 500
+
+
+@blueprint.route('/api/extractors/list', methods=['GET'])
+def api_list_extractors():
+    """
+    Get list of extractors for a specific user
+    Requires:
+    - Header: X-API-Key with MASTER_API_KEY
+    - Query param: username
+    
+    Returns:
+    - List of extractors with name and uid (uuid)
+    """
+    try:
+        from flask import current_app
+        from apps.authentication.models import Users
+        from apps.models.extractor import Extractor
+        
+        # Check for Master API key in headers
+        api_key = request.headers.get('X-API-Key')
+        
+        if not api_key:
+            return jsonify({
+                'success': False, 
+                'error': 'API key required. Please provide X-API-Key header with master token'
+            }), 401
+        
+        # Verify it's the master API key
+        master_key = current_app.config.get('MASTER_API_KEY')
+        if api_key != master_key:
+            return jsonify({
+                'success': False, 
+                'error': 'Invalid master API key'
+            }), 403
+        
+        # Get username from query parameter
+        username = request.args.get('username')
+        
+        if not username:
+            return jsonify({
+                'success': False, 
+                'error': 'username parameter is required'
+            }), 400
+        
+        # Find user by username
+        user = Users.query.filter_by(username=username).first()
+        
+        if not user:
+            return jsonify({
+                'success': False, 
+                'error': f'User not found: {username}'
+            }), 404
+        
+        # Get all extractors for this user
+        extractors = Extractor.query.filter_by(user_id=user.id).order_by(Extractor.created_at.desc()).all()
+        
+        # Format response with only name and uid
+        extractor_list = [
+            {
+                'name': extractor.name,
+                'uuid': extractor.uid
+            }
+            for extractor in extractors
+        ]
+        
+        return jsonify({
+            'success': True,
+            'username': username,
+            'user_id': user.id,
+            'count': len(extractor_list),
+            'extractors': extractor_list
+        }), 200
+        
+    except Exception as e:
+        print(f"List extractors error: {e}")
+        return jsonify({
+            'success': False, 
+            'error': str(e)
+        }), 500
 
 
 # Helper - Extract current page name from request

@@ -83,6 +83,23 @@ class ExtractorManager {
         this.setupRealTimeFieldEditing();
     }
 
+    attachExtractButtonListener() {
+        console.log('Attaching extract button listener...');
+        const extractBtn = document.querySelector('.extractor-bottom-bar .dashboard-btn-primary');
+        if (extractBtn) {
+            console.log('Extract button found');
+            // Clone the button to remove all existing event listeners
+            const newExtractBtn = extractBtn.cloneNode(true);
+            extractBtn.parentNode.replaceChild(newExtractBtn, extractBtn);
+            
+            // Attach fresh event handler
+            newExtractBtn.addEventListener('click', (e) => this.handleExtract(e));
+            console.log('Extract button listener attached');
+        } else {
+            console.warn('Extract button not found');
+        }
+    }
+
     setupDragAndDrop() {
         const uploadCard = document.querySelector('.upload-card');
         if (!uploadCard) return;
@@ -259,6 +276,9 @@ class ExtractorManager {
             this.syncTableConfigurationToDisplay(field, editor);
         }
 
+        // Reattach extract button listener after DOM changes
+        this.attachExtractButtonListener();
+
         console.log('Saving field:', idx);
     }
 
@@ -317,6 +337,9 @@ class ExtractorManager {
         });
 
         this.applyThemeStyles();
+        
+        // Reattach extract button listener after table DOM updates
+        this.attachExtractButtonListener();
     }
 
     updateFieldDisplay(field, editor) {

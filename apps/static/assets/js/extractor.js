@@ -3,6 +3,12 @@
  * Handles field editing, table management, and theme switching
  */
 
+// Silence native console.log in production unless DEBUG=true
+if (typeof window !== 'undefined' && (typeof window.DEBUG === 'undefined' || !window.DEBUG)) {
+    console.log = function(){};
+}
+
+
 class ExtractorManager {
     constructor() {
         // Initialize PDF-related properties

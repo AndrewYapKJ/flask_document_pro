@@ -18,6 +18,9 @@ from apps.authentication import blueprint
 from apps.authentication.forms import LoginForm, CreateAccountForm
 from apps.authentication.models import Users
 from apps.authentication.util import verify_pass
+import logging
+
+logger = logging.getLogger(__name__)
 
 # API Key Authentication Endpoint
 @blueprint.route('/api/auth', methods=['POST'])
@@ -30,11 +33,11 @@ def api_auth():
         api_key = request.headers.get('X-API-KEY')
     if not api_key:
         api_key = request.args.get('api_key')
-    print("Received API key:", api_key)
+    logger.debug("Received API key: %s", api_key)
     if not api_key:
         return jsonify({'error': 'API key required'}), 401
     user = Users.query.filter_by(api_key=api_key).first()
-    print("User found:", user)
+    logger.debug("User found: %s", user)
     if not user:
         return jsonify({'error': 'Invalid API key'}), 403
     return jsonify({'success': True, 'user_id': user.id, 'username': user.username}), 200

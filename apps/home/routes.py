@@ -3,12 +3,18 @@
 Copyright (c) 2019 - present AppSeed.us
 """
 
+from openai import OpenAI
 from apps.home import blueprint
 from flask import render_template, request, jsonify
 from flask_login import login_required, current_user
 from jinja2 import TemplateNotFound
 import json
 import os
+import logging
+
+from apps.services.extraction_serviceV2 import DocumentExtractionServiceV2
+
+logger = logging.getLogger(__name__)
 
 
 @blueprint.route('/index')
@@ -85,7 +91,7 @@ def create_bot():
             })
             
     except Exception as e:
-        print(f"Create bot error: {str(e)}")
+        logger.exception("Create bot error: %s", e)
         return jsonify({'error': str(e)})
 
 
@@ -143,13 +149,13 @@ def extract_document():
 
         return jsonify({
             'success': True,
-            'data': results,
+            'results': results,
             'filename': file.filename,
             'viewports': viewports
         })
         
     except Exception as e:
-        print(f"Document extraction error: {str(e)}")
+        logger.exception("Document extraction error: %s", e)
         return jsonify({'success': False, 'error': str(e)})
 
 
@@ -224,8 +230,63 @@ def api_extract():
         })
         
     except Exception as e:
-        print(f"Extraction error: {str(e)}")
+        logger.exception("Extraction error: %s", e)
         return jsonify({'success': False, 'error': str(e)})
+
+
+# @blueprint.route('/api/extract/<extractor_uid>', methods=['POST'])
+# def api_extract_by_uid(extractor_uid):
+#     try:
+#         from flask import current_app
+#         from apps.authentication.models import Users
+#         from apps.models.extractor import Extractor
+
+#         api_key = request.headers.get('X-API-Key')
+#         if not api_key:
+#             return jsonify({'success': False, 'error': 'API key required.'}), 401
+
+#         is_master_key = (api_key == current_app.config.get('MASTER_API_KEY'))
+#         if not is_master_key:
+#             user = Users.query.filter_by(api_key=api_key).first()
+#             if not user:
+#                 return jsonify({'success': False, 'error': 'Invalid API key'}), 401
+#         else:
+#             user = None
+
+#         extractor = Extractor.query.filter_by(uid=extractor_uid).first()
+#         if not extractor:
+#             return jsonify({'success': False, 'error': f'Extractor {extractor_uid} not found'}), 404
+
+#         if not is_master_key and user and extractor.user_id != user.id:
+#             return jsonify({'success': False, 'error': 'No permission to use this extractor'}), 403
+
+#         if 'file' not in request.files or request.files['file'].filename == '':
+#             return jsonify({'success': False, 'error': 'No file uploaded'}), 400
+
+#         file_content = request.files['file'].read()
+#         schema = extractor.schema
+
+#         # Initialize OpenAI client
+#         openai =  os.getenv('OPENAI_API_KEY')
+#         extraction_service = DocumentExtractionServiceV2(client=openai)
+
+#         results = extraction_service.extract_from_file(file_content, schema)
+
+#         return jsonify({
+#             'success': True,
+#             'results': results,
+#             'filename': request.files['file'].filename,
+#             'extractor': {
+#                 'uid': extractor.uid,
+#                 'name': extractor.name,
+#                 'schema': extractor.schema
+#             }
+#         })
+
+#     except Exception as e:
+#         logger.exception("Extraction error: %s", e)
+#         return jsonify({'success': False, 'error': str(e)}), 500
+
 
 
 @blueprint.route('/api/extract/<extractor_uid>', methods=['POST'])
@@ -331,9 +392,7 @@ def api_extract_by_uid(extractor_uid):
         })
         
     except Exception as e:
-        print(f"Extraction error: {str(e)}")
-        import traceback
-        traceback.print_exc()
+        logger.exception("Extraction error: %s", e)
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
@@ -421,7 +480,7 @@ def api_create_extractor():
         return jsonify({'success': True, 'extractor': extractor.to_dict()})
 
     except Exception as e:
-        print(f"Create extractor error: {e}")
+        logger.exception("Create extractor error: %s", e)
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
@@ -455,7 +514,7 @@ def api_update_extractor(extractor_id):
         return jsonify({'success': True, 'extractor': extractor.to_dict()})
     
     except Exception as e:
-        print(f"Update extractor error: {e}")
+        logger.exception("Update extractor error: %s", e)
         db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
 
@@ -635,7 +694,7 @@ def api_list_extractors():
         }), 200
         
     except Exception as e:
-        print(f"List extractors error: {e}")
+        logger.exception("List extractors error: %s", e)
         return jsonify({
             'success': False, 
             'error': str(e)

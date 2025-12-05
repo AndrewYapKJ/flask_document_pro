@@ -340,14 +340,31 @@ class ExtractorManager {
         // Drag and drop functionality
         this.setupDragAndDrop();
 
-        // Extract button
-        const extractBtn = document.querySelector('.extractor-bottom-bar .dashboard-btn-primary');
-        if (extractBtn) {
-            extractBtn.addEventListener('click', (e) => this.handleExtract(e));
-        }
+        // Attach extract button listener
+        this.attachExtractButtonListener();
 
         // Setup real-time field editing
         this.setupRealTimeFieldEditing();
+    }
+
+    attachExtractButtonListener() {
+        console.log('Attaching extract button listener...');
+        const extractBtn = document.querySelector('.extractor-bottom-bar .dashboard-btn-primary');
+        if (extractBtn) {
+            console.log('Extract button found');
+            // Remove any existing event listeners by cloning the button
+            const newExtractBtn = extractBtn.cloneNode(true);
+            extractBtn.parentNode.replaceChild(newExtractBtn, extractBtn);
+            
+            // Attach new event listener
+            newExtractBtn.addEventListener('click', (e) => {
+                console.log('Extract button clicked via listener');
+                this.handleExtract(e);
+            });
+            console.log('Extract button listener attached successfully');
+        } else {
+            console.log('Extract button not found in DOM');
+        }
     }
 
     setupDragAndDrop() {
@@ -503,12 +520,18 @@ class ExtractorManager {
     }
 
     saveField(field, editor, idx) {
+        console.log('=== SAVE FIELD CALLED ===');
+        console.log('Field index:', idx);
+        
         // Get the field name input value
         const fieldNameInput = editor.querySelector('.field-name-input');
         const fieldName = fieldNameInput ? fieldNameInput.value.trim() : '';
         
+        console.log('Field name to save:', fieldName);
+        
         // Validate field name is not empty
         if (!fieldName) {
+            console.log('Field name is empty, aborting save');
             alert('Field name is required. Please enter a valid field name.');
             if (fieldNameInput) {
                 fieldNameInput.focus();
@@ -523,6 +546,44 @@ class ExtractorManager {
         // Get current field name from display (for editing existing fields)
         const currentFieldNameSpan = field.querySelector('.field-name');
         const currentFieldName = currentFieldNameSpan ? currentFieldNameSpan.textContent : '';
+        
+        // Check field type before validation
+        const fieldTypeSelect = editor.querySelector('.field-type-select');
+        const fieldType = fieldTypeSelect?.value || 'text';
+        console.log('Field type:', fieldType);
+        
+        // If this is a table field, validate and sync BEFORE closing editor
+        if (fieldType === 'table') {
+            console.log('Validating table field...');
+            const tableColumns = editor.querySelectorAll('.table-column-row');
+            console.log('Table columns count:', tableColumns.length);
+            
+            if (tableColumns.length === 0) {
+                console.log('No table columns found, aborting save');
+                alert('Table fields must have at least one column. Please add columns before saving.');
+                // Keep editor open
+                field.classList.add('expanded');
+                editor.style.display = 'flex';
+                return;
+            }
+            
+            // Validate and sync table columns - if validation fails, don't save
+            const tableSubfields = field.querySelector('.table-subfields');
+            const syncResult = this.syncTableConfigurationToDisplay(field, editor);
+            if (syncResult === false) {
+                console.log('Table sync validation failed, aborting save');
+                // Validation failed, keep editor open
+                field.classList.add('expanded');
+                editor.style.display = 'flex';
+                return;
+            }
+            
+            console.log('Table validation passed');
+            if (tableSubfields) {
+                tableSubfields.style.display = 'block';
+            }
+            field.classList.add('table-field');
+        }
         
         // Always check for uniqueness (even if name hasn't changed, to catch edge cases)
         // Get all existing field names from the display, excluding the current field being edited
@@ -559,6 +620,7 @@ class ExtractorManager {
         console.log('=============================');
         
         if (isDuplicate) {
+            console.log('Duplicate field name detected, aborting save');
             const message = `Field name "${fieldName}" already exists!\n\nExisting field names:\n${allFieldNames.join(', ')}\n\nPlease enter a unique field name.`;
             alert(message);
             if (fieldNameInput) {
@@ -577,44 +639,30 @@ class ExtractorManager {
         // Update the label in selections array if this field exists there
         const selectionIndex = this.selections.findIndex(sel => sel.label === currentFieldName);
         if (selectionIndex !== -1) {
+            console.log('Updating selection label from', currentFieldName, 'to', fieldName);
             this.selections[selectionIndex].label = fieldName;
         }
         
         // Update field display with the edited values
+        console.log('Updating field display...');
         this.updateFieldDisplay(field, editor);
         
         // Remove the "new field" marker if it exists (field is now saved)
         if (field.hasAttribute('data-is-new-field')) {
+            console.log('Removing new field marker');
             field.removeAttribute('data-is-new-field');
         }
         
+        // Close editor
+        console.log('Closing editor...');
         field.classList.remove('expanded');
         editor.style.display = 'none';
 
-        // If this is a table field, ensure subfields are visible and synced
-        const fieldTypeSelect = editor.querySelector('.field-type-select');
-        const tableSubfields = field.querySelector('.table-subfields');
-
-        if (fieldTypeSelect?.value === 'table' && tableSubfields) {
-            // Check if table has at least one column
-            const tableColumns = editor.querySelectorAll('.table-column-row');
-            if (tableColumns.length === 0) {
-                alert('Table fields must have at least one column. Please add columns before saving.');
-                return;
-            }
-            
-            // Validate and sync table columns - if validation fails, don't save
-            const syncResult = this.syncTableConfigurationToDisplay(field, editor);
-            if (syncResult === false) {
-                // Validation failed, keep editor open
-                return;
-            }
-            
-            tableSubfields.style.display = 'block';
-            field.classList.add('table-field');
-        }
-
-        console.log('Saving field:', idx, 'with name:', fieldName);
+        console.log('Field saved successfully:', idx, 'with name:', fieldName);
+        
+        // Reattach extract button listener after field save
+        console.log('Reattaching extract button listener...');
+        this.attachExtractButtonListener();
         
         // Show success feedback
         const saveBtn = editor.querySelector('.save-btn');
@@ -627,6 +675,8 @@ class ExtractorManager {
                 saveBtn.style.backgroundColor = '';
             }, 1500);
         }
+        
+        console.log('=== SAVE FIELD COMPLETED ===');
     }
 
     syncTableConfigurationToDisplay(field, editor) {
@@ -1961,14 +2011,20 @@ class ExtractorManager {
         
         let resultsHTML = '';
         
-        // Get schema field mapping
+        // Get schema field mapping to identify table fields
         const schemaMapping = this.getSchemaFieldMapping();
         
         // Process each field result
         Object.entries(this.lastExtractionResults).forEach(([fieldName, value]) => {
-            if (fieldName === 'line_items' && Array.isArray(value)) {
+            // Check if this field is a table type in the schema
+            const isTableField = schemaMapping[fieldName]?.type === 'table';
+            
+            if (isTableField && Array.isArray(value)) {
                 // Handle table data
                 resultsHTML += this.createTableResultHTML(fieldName, value, schemaMapping);
+            } else if (Array.isArray(value)) {
+                // Handle array values that are not table fields
+                resultsHTML += this.createArrayResultHTML(fieldName, value, schemaMapping);
             } else {
                 // Handle regular fields
                 resultsHTML += this.createFieldResultHTML(fieldName, value, schemaMapping);
@@ -2057,8 +2113,24 @@ class ExtractorManager {
     }
 
     getSchemaFieldMapping() {
-        // Create mapping from original schema field names to display names
+        // Create mapping from original schema field names to display names and types
         const mapping = {};
+        
+        // Get current schema fields from DOM
+        document.querySelectorAll('.extractor-field-row').forEach(fieldRow => {
+            const fieldNameSpan = fieldRow.querySelector('.field-name');
+            const fieldType = fieldRow.querySelector('.field-type-badge');
+            
+            if (fieldNameSpan && fieldType) {
+                const fieldName = fieldNameSpan.textContent.trim();
+                const fieldTypeText = fieldType.textContent.trim().toLowerCase();
+                
+                mapping[fieldName] = {
+                    displayName: fieldName,
+                    type: fieldTypeText
+                };
+            }
+        });
         
         if (this.originalSchemaContent) {
             // Parse original schema content to get field names
@@ -2073,27 +2145,51 @@ class ExtractorManager {
                     const originalName = fieldNameSpan.textContent.trim();
                     const fieldTypeText = fieldType.textContent.trim().toLowerCase();
                     
-                    // Map common field mappings
-                    if (originalName.toLowerCase().includes('invoice') && originalName.toLowerCase().includes('number')) {
-                        mapping['invoice_number'] = originalName;
-                    }
-                    if (originalName.toLowerCase().includes('date')) {
-                        mapping['invoice_date'] = originalName;
-                    }
-                    if (originalName.toLowerCase().includes('total') || originalName.toLowerCase().includes('amount')) {
-                        mapping['total_amount'] = originalName;
-                    }
-                    if (originalName.toLowerCase().includes('vendor') || originalName.toLowerCase().includes('supplier')) {
-                        mapping['vendor_name'] = originalName;
-                    }
-                    if (fieldTypeText === 'table' || originalName.toLowerCase().includes('item') || originalName.toLowerCase().includes('line')) {
-                        mapping['line_items'] = originalName;
+                    // Only add if not already in mapping
+                    if (!mapping[originalName]) {
+                        mapping[originalName] = {
+                            displayName: originalName,
+                            type: fieldTypeText
+                        };
                     }
                 }
             });
         }
         
+        console.log('Schema field mapping:', mapping);
         return mapping;
+    }
+
+    createArrayResultHTML(fieldName, arrayValue, schemaMapping = {}) {
+        // Handle array values that are not table fields
+        const displayName = schemaMapping[fieldName]?.displayName || fieldName;
+        const itemCount = arrayValue.length;
+        
+        // Show first few items or summary
+        let displayValue = `Array (${itemCount} item${itemCount !== 1 ? 's' : ''})`;
+        
+        if (itemCount > 0 && itemCount <= 5) {
+            // Show items if count is small
+            try {
+                displayValue = '<ul class="array-items-list">';
+                arrayValue.forEach((item, index) => {
+                    const itemStr = typeof item === 'object' ? JSON.stringify(item, null, 2) : String(item);
+                    displayValue += `<li><strong>Item ${index + 1}:</strong> ${itemStr}</li>`;
+                });
+                displayValue += '</ul>';
+            } catch (e) {
+                displayValue = `Array (${itemCount} items)`;
+            }
+        }
+        
+        return `
+            <div class="extraction-field-result has-value array-result">
+                <div class="field-result-header">
+                    <span class="field-result-name">${displayName}</span>
+                </div>
+                <div class="field-result-value">${displayValue}</div>
+            </div>
+        `;
     }
 
     addNavigationBar() {

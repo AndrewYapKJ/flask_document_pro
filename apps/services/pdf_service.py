@@ -7,6 +7,9 @@ import os
 import base64
 import io
 from PIL import Image
+import logging
+
+logger = logging.getLogger(__name__)
 import pdf2image
 import tempfile
 from flask import url_for
@@ -107,7 +110,7 @@ class PDFService:
             }
             
         except Exception as e:
-            print(f"PDF conversion error: {str(e)}")
+            logger.exception("PDF conversion error: %s", e)
             return {'error': f'PDF conversion failed: {str(e)}'}
     
     def convert_all_pages(self, pdf_path, dpi=150):
@@ -168,7 +171,7 @@ class PDFService:
             }
             
         except Exception as e:
-            print(f"PDF conversion error: {str(e)}")
+            logger.exception("PDF conversion error: %s", e)
             return {'error': f'PDF conversion failed: {str(e)}'}
     
     def get_pdf_info(self, pdf_path):
@@ -209,7 +212,7 @@ class PDFService:
             }
             
         except Exception as e:
-            print(f"PDF info error: {str(e)}")
+            logger.exception("PDF info error: %s", e)
             return {'error': f'Failed to get PDF info: {str(e)}'}
     
     def cleanup_temp_files(self, max_age_hours=24):
@@ -232,9 +235,9 @@ class PDFService:
                     if file_age > max_age_seconds:
                         try:
                             os.remove(file_path)
-                            print(f"Cleaned up old PDF image: {filename}")
+                            logger.info("Cleaned up old PDF image: %s", filename)
                         except Exception as e:
-                            print(f"Failed to cleanup {filename}: {str(e)}")
+                            logger.exception("Failed to cleanup %s: %s", filename, e)
                             
         except Exception as e:
-            print(f"Cleanup error: {str(e)}")
+            logger.exception("Cleanup error: %s", e)

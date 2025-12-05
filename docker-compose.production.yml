@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  # SQL Server Database
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: flask_document_pro_db
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=${DB_PASSWORD}
+      - MSSQL_PID=Developer
+    ports:
+      - "1433:1433"
+    volumes:
+      - mssql_data:/var/opt/mssql
+    networks:
+      - app_network
+    healthcheck:
+      test: /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P ${DB_PASSWORD} -Q "SELECT 1" || exit 1
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+  # Flask Application
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.production
+    container_name: flask_document_pro_web
+    environment:
+      - DEBUG=False
+      - DATABASE_URL=mssql+pyodbc://sa:${DB_PASSWORD}@db:1433/DocumentPro?driver=ODBC+Driver+18+for+SQL+Server&TrustServerCertificate=yes
+      - SECRET_KEY=${SECRET_KEY}
+      - MASTER_API_KEY=${MASTER_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./apps/static/uploads:/app/apps/static/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - app_network
+    restart: unless-stopped
+
+volumes:
+  mssql_data:
+
+networks:
+  app_network:
+    driver: bridge

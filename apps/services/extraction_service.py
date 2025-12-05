@@ -9,18 +9,21 @@ import json
 import io
 try:
     from openai import OpenAI
-    print("OpenAI package imported successfully")
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info("OpenAI package imported successfully")
 except ImportError as e:
-    print(f"Error importing OpenAI: {e}")
+    logger = logging.getLogger(__name__)
+    logger.exception("Error importing OpenAI: %s", e)
     OpenAI = None
 
 try:
     from pdf2image import convert_from_bytes
     from PIL import Image
-    print("PDF conversion libraries imported successfully")
+    logger.info("PDF conversion libraries imported successfully")
     PDF_CONVERSION_AVAILABLE = True
 except ImportError as e:
-    print(f"PDF conversion libraries not available: {e}")
+    logger.exception("PDF conversion libraries not available: %s", e)
     PDF_CONVERSION_AVAILABLE = False
 
 from typing import Dict, Any, Optional
@@ -32,35 +35,35 @@ class DocumentExtractionService:
     def __init__(self, api_key: Optional[str] = None):
         """Initialize the service with OpenAI API key"""
         if OpenAI is None:
-            print("Error: OpenAI package not available")
+            logger.error("OpenAI package not available")
             self.client = None
             return
             
         self.api_key = api_key or os.getenv('OPENAI_API_KEY')
         if not self.api_key:
             # Don't raise error, just set up for dummy data mode
-            print("Warning: No OpenAI API key provided. Will use dummy data.")
+            logger.warning("No OpenAI API key provided. Will use dummy data.")
             self.client = None
         else:
             try:
-                print(f"Initializing OpenAI client with API key: {self.api_key[:10]}...")
+                logger.info("Initializing OpenAI client with API key: %s...", self.api_key[:10])
                 # Initialize OpenAI client with minimal parameters
                 self.client = OpenAI(
                     api_key=self.api_key
                 )
-                print("OpenAI client initialized successfully")
+                logger.info("OpenAI client initialized successfully")
             except Exception as e:
-                print(f"Error initializing OpenAI client: {str(e)}")
-                print(f"Error type: {type(e).__name__}")
+                logger.exception("Error initializing OpenAI client: %s", e)
                 # Fall back to dummy data mode
                 self.client = None
     
-    def _convert_pdf_to_image(self, file_bytes: bytes) -> tuple[bytes, str]:
+    def _convert_pdf_to_image(self, file_bytes: bytes, max_pages: int = None) -> tuple[bytes, str]:
         """
-        Convert PDF bytes to image bytes
+        Convert PDF bytes to image bytes (all pages or specified max)2
         
         Args:
             file_bytes: PDF file content as bytes
+            max_pages: Maximum number of pages to convert (None = all pages)
             
         Returns:
             Tuple of (image_bytes, mime_type)
@@ -69,22 +72,61 @@ class DocumentExtractionService:
             raise Exception("PDF conversion libraries not available")
         
         try:
-            # Convert PDF to images (take first page)
-            images = convert_from_bytes(file_bytes, first_page=1, last_page=1, dpi=200)
+            # Convert all pages (or up to max_pages)
+            logger.info("Converting PDF to images (max_pages: %s)", max_pages or "all")
+            
+            if max_pages:
+                images = convert_from_bytes(file_bytes, first_page=1, last_page=max_pages, dpi=200)
+            else:
+                images = convert_from_bytes(file_bytes, dpi=200)
             
             if not images:
                 raise Exception("No pages found in PDF")
             
-            # Convert PIL Image to bytes
+            num_pages = len(images)
+            logger.info("Converted %d page(s) from PDF", num_pages)
+            
+            # If single page, just return it
+            if num_pages == 1:
+                img_buffer = io.BytesIO()
+                images[0].save(img_buffer, format='PNG')
+                img_bytes = img_buffer.getvalue()
+                logger.info("Single page PDF converted to PNG (%d bytes)", len(img_bytes))
+                return img_bytes, "image/png"
+            
+            # Multiple pages: merge them vertically
+            logger.info("Merging %d pages vertically...", num_pages)
+            
+            # Get dimensions
+            widths = [img.width for img in images]
+            heights = [img.height for img in images]
+            
+            # Use max width and sum of heights
+            max_width = max(widths)
+            total_height = sum(heights)
+            
+            # Create new image with combined dimensions
+            merged_image = Image.new('RGB', (max_width, total_height), 'white')
+            
+            # Paste each page vertically
+            y_offset = 0
+            for img in images:
+                # Center image if it's narrower than max_width
+                x_offset = (max_width - img.width) // 2
+                merged_image.paste(img, (x_offset, y_offset))
+                y_offset += img.height
+            
+            # Convert merged image to bytes
             img_buffer = io.BytesIO()
-            images[0].save(img_buffer, format='PNG')
+            merged_image.save(img_buffer, format='PNG')
             img_bytes = img_buffer.getvalue()
             
-            print(f"Successfully converted PDF to PNG image ({len(img_bytes)} bytes)")
+            logger.info("Successfully merged %d pages into single PNG (%d bytes, %dx%d)", 
+                       num_pages, len(img_bytes), max_width, total_height)
             return img_bytes, "image/png"
             
         except Exception as e:
-            print(f"Error converting PDF to image: {str(e)}")
+            logger.exception("Error converting PDF to image: %s", e)
             raise Exception(f"Failed to convert PDF: {str(e)}")
     
     def _detect_file_type(self, file_bytes: bytes) -> str:
@@ -125,7 +167,7 @@ class DocumentExtractionService:
             Tuple of (base64_string, mime_type)
         """
         file_type = self._detect_file_type(file_bytes)
-        print(f"Detected file type: {file_type}")
+        logger.debug("Detected file type: %s", file_type)
         
         if file_type == 'pdf':
             if not PDF_CONVERSION_AVAILABLE:
@@ -144,7 +186,7 @@ class DocumentExtractionService:
             
         else:
             # Unknown file type - try as image anyway
-            print(f"Unknown file type, attempting as JPEG...")
+            logger.info("Unknown file type, attempting as JPEG...")
             mime_type = "image/jpeg"
             file_b64 = base64.b64encode(file_bytes).decode("utf-8")
             return file_b64, mime_type
@@ -162,7 +204,7 @@ class DocumentExtractionService:
         """
         # If no API client, use dummy data
         if not self.client:
-            print("No OpenAI client available, using dummy data")
+            logger.warning("No OpenAI client available, using dummy data")
             return self._generate_dummy_data(schema)
         
         try:
@@ -172,12 +214,12 @@ class DocumentExtractionService:
             # Build the extraction schema from the form fields
             extraction_schema = self._build_extraction_schema(schema)
             
-            print(f"Sending document to OpenAI for extraction with schema: {extraction_schema}")
+            logger.info("Sending document to OpenAI for extraction with schema: %s", extraction_schema)
             
             # Call OpenAI API
             response = self.client.chat.completions.create(
-                model="gpt-4o-mini",  # Use gpt-4o-mini for cost effectiveness
-                messages=[
+                model="gpt-4o",  # Use gpt-4o-mini for cost effectiveness
+              messages=[
                     {
                         "role": "system",
                         "content": (
@@ -196,46 +238,49 @@ class DocumentExtractionService:
                     {
                         "role": "user",
                         "content": [
-                            {
-                                "type": "text",
-                                "text": f"Extract document data and return JSON with this exact schema: {json.dumps(extraction_schema)}"
-                            },
-                            {
-                                "type": "image_url",
-                                "image_url": {
-                                    "url": f"data:{mime_type};base64,{file_b64}"
-                                }
-                            }
-                        ]
+                                    {
+                                        "type": "text",
+                                        "text": f"Extract document data and return JSON with this exact schema: {json.dumps(extraction_schema)}"
+                                    },
+                                    {
+                                        "type": "image_url",
+                                        "image_url": {
+                                            "url": f"data:{mime_type};base64,{file_b64}"
+                                        }
+                                    }
+                                ]
                     }
+                    
+                    
                 ],
                 response_format={"type": "json_object"}  # ensures valid JSON
             )
             
             # Parse JSON output
             extracted_data = json.loads(response.choices[0].message.content)
-            print(f"OpenAI extraction successful: {extracted_data}")
+            logger.info("OpenAI extraction successful: %s", extracted_data)
             
             # Convert the extracted data back to the format expected by the UI
             return self._format_extraction_results(extracted_data, schema)
+   
             
         except json.JSONDecodeError as e:
-            print(f"JSON parsing error in OpenAI response: {str(e)}")
-            print(f"Raw response: {response.choices[0].message.content}")
+            logger.exception("JSON parsing error in OpenAI response: %s", e)
+            logger.debug("Raw response: %s", response.choices[0].message.content)
             # Return dummy data as fallback
             return self._generate_dummy_data(schema)
             
         except Exception as e:
-            print(f"Error in OpenAI extraction: {str(e)}")
-            print(f"Error type: {type(e).__name__}")
+            logger.exception("Error in OpenAI extraction: %s", e)
+            logger.debug("Error type: %s", type(e).__name__)
             
             # Check for specific error types
             if hasattr(e, 'code'):
                 if e.code == 'insufficient_quota':
-                    print("OpenAI quota exceeded - falling back to demo data")
+                    logger.warning("OpenAI quota exceeded - falling back to demo data")
                     return self._generate_demo_data_with_message(schema, "⚠️ OpenAI quota exceeded. Showing demo data.")
                 elif e.code == 'invalid_image_format':
-                    print("Invalid image format - falling back to demo data")
+                    logger.warning("Invalid image format - falling back to demo data")
                     return self._generate_demo_data_with_message(schema, "⚠️ Unsupported file format. Please use PNG, JPEG, GIF, WebP, or PDF files.")
             
             # Return dummy data as fallback for any other errors
@@ -244,6 +289,14 @@ class DocumentExtractionService:
     def _build_extraction_schema(self, form_schema: Dict[str, Any]) -> Dict[str, Any]:
         """Build OpenAI extraction schema from form schema with position information"""
         extraction_schema = {}
+        
+        # Get document metadata if available
+        doc_metadata = form_schema.get('documentMetadata', {})
+        pdf_info = doc_metadata.get('pdfInfo') or {}
+        num_pages = pdf_info.get('numPages', 1)
+        
+        if num_pages > 1:
+            logger.info("Building extraction schema for %d-page document", num_pages)
         
         for field in form_schema.get('fields', []):
             field_name = field.get('name', '')
@@ -281,12 +334,12 @@ class DocumentExtractionService:
                     "type": "number",
                     "description": enhanced_description
                 }
-            elif field_type == 'date':
-                extraction_schema[field_name] = {
-                    "type": "string",
-                    "format": "YYYY-MM-DD",
-                    "description": enhanced_description
-                }
+            # elif field_type == 'date':
+            #     extraction_schema[field_name] = {
+            #         "type": "string",
+            #         "format": "YYYY-MM-DD",
+            #         "description": enhanced_description
+            #     }
             elif field_type == 'boolean':
                 extraction_schema[field_name] = {
                     "type": "boolean",

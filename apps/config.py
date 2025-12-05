@@ -4,6 +4,9 @@ Copyright (c) 2019 - present AppSeed.us
 """
 
 import os, random, string
+import logging
+
+logger = logging.getLogger(__name__)
 
 class Config(object):
 
@@ -68,7 +71,7 @@ class Config(object):
             f"mssql+pyodbc://{DB_CONFIG['username']}:{encoded_password}@"
             f"{DB_CONFIG['server']}/{DB_CONFIG['database']}?driver={driver_param}&TrustServerCertificate=yes"
         )
-        print(f"Using ODBC Driver: {driver}")
+        logger.info("Using fallback DB_CONFIG to build SQLALCHEMY_DATABASE_URI")
     
 class ProductionConfig(Config):
     DEBUG = False

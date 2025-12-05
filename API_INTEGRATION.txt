@@ -1,0 +1,211 @@
+# API Integration Guide
+
+## Overview
+
+This document provides details on how to integrate with the Flask Document Pro API for document extraction and extractor management.
+
+## Base URL
+
+```
+ENDPOINT: http://3.80.54.39:5000
+```
+
+## Authentication
+
+All API endpoints require authentication using one of the following methods:
+
+### 1.  API Key 
+```
+Header: X-API-Key: <API_KEY>
+```
+
+---
+
+## API Endpoints
+
+### 1. Get Extractor List
+
+Retrieve all extractors for a specific user.
+
+**Endpoint:** `GET /api/extractors/list`
+
+
+**Query Parameters:**
+- `username` (required) - The username to fetch extractors for
+
+**Headers:**
+```
+X-API-Key: <API_KEY>
+```
+
+**Example Request:**
+```bash
+curl -X GET "http://3.80.54.39:5000/api/extractors/list?username=gisadmin" \
+  -H "X-API-Key: "API_KEY"
+```
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "username": "gisadmin",
+  "user_id": 2,
+  "count": 3,
+  "extractors": [
+    {
+      "name": "Invoice Extractor",
+      "uuid": "550e8400-e29b-41d4-a716-446655440000"
+    },
+    {
+      "name": "Receipt Parser",
+      "uuid": "6ba7b810-9dad-11d1-80b4-00c04fd430c8"
+    },
+    {
+      "name": "Contract Analyzer",
+      "uuid": "7c9e6679-7425-40de-944b-e07fc1f90ae7"
+    }
+  ]
+}
+```
+
+**Error Responses:**
+
+401 Unauthorized - Missing API Key:
+```json
+{
+  "success": false,
+  "error": "API key required. Please provide X-API-Key header with token"
+}
+```
+
+403 Forbidden - Invalid  Key:
+```json
+{
+  "success": false,
+  "error": "Invalid  API key"
+}
+```
+
+400 Bad Request - Missing Username:
+```json
+{
+  "success": false,
+  "error": "username parameter is required"
+}
+```
+
+404 Not Found - User Not Found:
+```json
+{
+  "success": false,
+  "error": "User not found: nonexistent_user"
+}
+```
+
+---
+
+### 2. Extract Document Data
+
+Extract structured data from a PDF document using a specific extractor.
+
+**Endpoint:** `POST /api/extract/<extractor_uid>`
+
+
+**Path Parameters:**
+- `extractor_uid` - The UUID of the extractor to use (from the extractor list)
+
+**Headers:**
+```
+X-API-Key: <API_KEY>
+Content-Type: multipart/form-data
+```
+
+**Form Data:**
+- `file` (required) - PDF file to extract data from
+
+**Example Request:**
+```bash
+curl -X POST "http://3.80.54.39:5000/api/extract/550e8400-e29b-41d4-a716-446655440000" \
+  -H "X-API-Key: YOUR_API_KEY" \
+  -F "file=@/path/to/invoice.pdf"
+```
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "extractor_uid": "550e8400-e29b-41d4-a716-446655440000",
+  "extractor_name": "Invoice Extractor",
+  "extracted_data": {
+    "invoice_number": "INV-2024-001",
+    "date": "2024-11-20",
+    "total_amount": 1250.00,
+    "vendor_name": "ABC Corp",
+    "items": [
+      {
+        "description": "Service Fee",
+        "quantity": 1,
+        "price": 1000.00
+      },
+      {
+        "description": "Tax",
+        "quantity": 1,
+        "price": 250.00
+      }
+    ]
+  },
+  "processing_time": 2.35
+}
+```
+
+**Error Responses:**
+
+401 Unauthorized - Missing API Key:
+```json
+{
+  "success": false,
+  "error": "API key required. Please provide X-API-Key header"
+}
+```
+
+401 Unauthorized - Invalid API Key:
+```json
+{
+  "success": false,
+  "error": "Invalid API key"
+}
+```
+
+404 Not Found - Extractor Not Found:
+```json
+{
+  "success": false,
+  "error": "Extractor not found"
+}
+```
+
+403 Forbidden - Not Owner:
+```json
+{
+  "success": false,
+  "error": "You don't have permission to use this extractor"
+}
+```
+
+400 Bad Request - No File:
+```json
+{
+  "success": false,
+  "error": "No file uploaded"
+}
+```
+
+400 Bad Request - Invalid File:
+```json
+{
+  "success": false,
+  "error": "Invalid file format. Only PDF files are allowed"
+}
+```
+
+---

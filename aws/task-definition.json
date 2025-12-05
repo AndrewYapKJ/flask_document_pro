@@ -1,0 +1,77 @@
+{
+  "family": "flask-document-pro",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "512",
+  "memory": "1024",
+  "executionRoleArn": "arn:aws:iam::YOUR_ACCOUNT_ID:role/ecsTaskExecutionRole",
+  "containerDefinitions": [
+    {
+      "name": "flask-document-pro",
+      "image": "YOUR_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/flask-document-pro:latest",
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 5000,
+          "protocol": "tcp"
+        }
+      ],
+      "secrets": [
+        {
+          "name": "SECRET_KEY",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:YOUR_ACCOUNT_ID:secret:flask-document-pro/app-keys:SECRET_KEY::"
+        },
+        {
+          "name": "MASTER_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:YOUR_ACCOUNT_ID:secret:flask-document-pro/app-keys:MASTER_API_KEY::"
+        },
+        {
+          "name": "OPENAI_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:YOUR_ACCOUNT_ID:secret:flask-document-pro/app-keys:OPENAI_API_KEY::"
+        },
+        {
+          "name": "DB_PASSWORD",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:YOUR_ACCOUNT_ID:secret:flask-document-pro/database:password::"
+        }
+      ],
+      "environment": [
+        {
+          "name": "DEBUG",
+          "value": "False"
+        },
+        {
+          "name": "DB_HOST",
+          "value": "flask-document-pro-db.xxxxxx.us-east-1.rds.amazonaws.com"
+        },
+        {
+          "name": "DB_PORT",
+          "value": "1433"
+        },
+        {
+          "name": "DB_NAME",
+          "value": "DocumentPro"
+        },
+        {
+          "name": "DB_USERNAME",
+          "value": "admin"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/flask-document-pro",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "ecs",
+          "awslogs-create-group": "true"
+        }
+      },
+      "healthCheck": {
+        "command": ["CMD-SHELL", "curl -f http://localhost:5000/ || exit 1"],
+        "interval": 30,
+        "timeout": 5,
+        "retries": 3,
+        "startPeriod": 60
+      }
+    }
+  ]
+}

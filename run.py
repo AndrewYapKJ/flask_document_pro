@@ -4,6 +4,12 @@ Copyright (c) 2019 - present AppSeed.us
 """
 
 import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file FIRST
+# Use explicit path to ensure .env is found
+load_dotenv('/app/.env')
+
 from   flask_migrate import Migrate
 try:
     from flask_minify import Minify

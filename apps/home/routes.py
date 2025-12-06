@@ -701,6 +701,114 @@ def api_list_extractors():
         }), 500
 
 
+@blueprint.route('/api/extractors/<identifier>/schema', methods=['GET'])
+def api_get_extractor_schema(identifier):
+    """
+    Get schema for a specific extractor by ID or UID
+    
+    Supports two modes:
+    1. Public access by UID (no authentication required)
+    2. Authenticated access by ID (requires login)
+    
+    Parameters:
+    - identifier: Either extractor ID (integer) or UID (UUID string)
+    
+    Returns:
+    - Extractor schema JSON with metadata
+    
+    Example:
+    GET /api/extractors/123/schema (by ID, requires auth)
+    GET /api/extractors/4e8868b8-ce91-47e8-9b78-0fef637a3288/schema (by UID, public)
+    """
+    try:
+        from apps.models.extractor import Extractor
+        
+        # Try to determine if identifier is an integer ID or UUID string
+        try:
+            extractor_id = int(identifier)
+            is_id = True
+        except ValueError:
+            is_id = False
+        
+        # Fetch extractor
+        if is_id:
+            # Access by ID requires authentication
+            if not current_user.is_authenticated:
+                return jsonify({
+                    'success': False,
+                    'error': 'Authentication required for access by ID'
+                }), 401
+            
+            extractor = Extractor.query.filter_by(
+                id=extractor_id,
+                user_id=current_user.id
+            ).first()
+        else:
+            # Access by UID is public
+            extractor = Extractor.query.filter_by(uid=identifier).first()
+        
+        if not extractor:
+            return jsonify({
+                'success': False,
+                'error': f'Extractor not found: {identifier}'
+            }), 404
+        
+        # Get fields and convert types
+        fields = extractor.schema.get('fields', []) if isinstance(extractor.schema, dict) else extractor.schema
+        
+        # Type mapping: UI types to standard data types
+        type_mapping = {
+            'text': 'string',
+            'number': 'double',
+            'date': 'datetime',
+            'boolean': 'boolean',
+            'table': 'array'
+        }
+        
+        def convert_field_types(field):
+            """Convert field types from UI format to standard format and remove position data"""
+            # Only keep essential field properties
+            converted = {
+                'name': field.get('name'),
+                'type': type_mapping.get(field.get('type'), field.get('type')),
+                'description': field.get('description', '')
+            }
+            
+            # Convert subfield types for table fields
+            if 'subfields' in field and isinstance(field['subfields'], list):
+                converted['subfields'] = [
+                    {
+                        'name': subfield.get('name'),
+                        'type': type_mapping.get(subfield.get('type', 'text'), subfield.get('type', 'string')),
+                        'description': subfield.get('description', '')
+                    }
+                    for subfield in field['subfields']
+                ]
+            
+            return converted
+        
+        # Convert all fields
+        converted_fields = [convert_field_types(field) for field in fields]
+        
+        return jsonify({
+            'success': True,
+            'id': extractor.id,
+            'uid': extractor.uid,
+            'name': extractor.name,
+            'description': extractor.description,
+            'created_at': extractor.created_at.isoformat() if extractor.created_at else None,
+            'fields': converted_fields
+        }), 200
+
+        
+    except Exception as e:
+        logger.exception("Get extractor schema error: %s", e)
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
 # Helper - Extract current page name from request
 def get_segment(request):
 

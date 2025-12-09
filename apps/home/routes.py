@@ -12,7 +12,7 @@ import json
 import os
 import logging
 
-from apps.services.extraction_serviceV2 import DocumentExtractionServiceV2
+
 
 logger = logging.getLogger(__name__)
 
@@ -45,284 +45,18 @@ def extractor_list():
     
     return render_template('home/extractor-list.html', segment='extractor-list', workflows=extractors)
 
-@blueprint.route('/create_bot', methods=['POST'])
-def create_bot():
-    """
-    Handle PDF upload and page rendering for bot creation
-    """
-    try:
-        # Get uploaded file
-        if 'file' not in request.files:
-            return jsonify({'error': 'No file uploaded'})
-        
-        file = request.files['file']
-        if file.filename == '':
-            return jsonify({'error': 'No file selected'})
-        
-        # Get page number (default to 0)
-        page_num = int(request.form.get('page_num', 0))
-        
-        # Save file temporarily
-        import tempfile
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp_file:
-            file.save(tmp_file.name)
-            
-            # Convert PDF page to image
-            from apps.services.pdf_service import PDFService
-            pdf_service = PDFService()
-            
-            result = pdf_service.convert_page_to_image(tmp_file.name, page_num)
-            
-            # Clean up temp file
-            os.unlink(tmp_file.name)
-            
-            if result.get('error'):
-                return jsonify({'error': result['error']})
-            
-            return jsonify({
-                'image_url': result['image_url'],
-                'page_count': result['page_count'],
-                'pdf_width': result['pdf_width'],
-                'pdf_height': result['pdf_height'],
-                'target_width': result.get('target_width', 595),
-                'target_height': result.get('target_height', 842),
-                'paste_x': result.get('paste_x', 0),
-                'paste_y': result.get('paste_y', 0)
-            })
-            
-    except Exception as e:
-        logger.exception("Create bot error: %s", e)
-        return jsonify({'error': str(e)})
-
-
-@blueprint.route('/extract_document', methods=['POST'])
-def extract_document():
-    """
-    Handle document extraction with viewports and schema
-    """
-    try:
-        # Get uploaded file
-        if 'file' not in request.files:
-            return jsonify({'success': False, 'error': 'No file uploaded'})
-        
-        file = request.files['file']
-        if file.filename == '':
-            return jsonify({'success': False, 'error': 'No file selected'})
-        
-        # Get schema and viewports or an extractor_id referencing a stored schema
-        schema_json = request.form.get('schema', '[]')
-        viewports_json = request.form.get('viewports', '[]')
-        extractor_id = request.form.get('extractor_id')
-
-        viewports = json.loads(viewports_json)
-
-        schema = None
-        if extractor_id:
-            try:
-                from apps.models.extractor import Extractor
-                from apps import db
-
-                extractor = db.session.get(Extractor, int(extractor_id))
-                if extractor:
-                    schema = extractor.schema
-                else:
-                    return jsonify({'success': False, 'error': f'Extractor id {extractor_id} not found'})
-            except Exception as e:
-                return jsonify({'success': False, 'error': str(e)})
-        else:
-            schema = json.loads(schema_json)
-        
-        # Read file content
-        file_content = file.read()
-        
-        # Initialize the extraction service
-        from apps.services.extraction_service import DocumentExtractionService
-        extraction_service = DocumentExtractionService()
-        
-        # Convert schema format for extraction service
-        schema_dict = {
-            'fields': schema
-        }
-        
-        # Extract data using OpenAI
-        results = extraction_service.extract_from_file(file_content, schema_dict)
-
-        return jsonify({
-            'success': True,
-            'results': results,
-            'filename': file.filename,
-            'viewports': viewports
-        })
-        
-    except Exception as e:
-        logger.exception("Document extraction error: %s", e)
-        return jsonify({'success': False, 'error': str(e)})
-
-
-@blueprint.route('/extract_text', methods=['POST'])
-def extract_text():
-    """
-    Extract text from specific viewport coordinates (for legacy support)
-    """
-    try:
-        # Get uploaded file
-        if 'file' not in request.files:
-            return jsonify({'error': 'No file uploaded'})
-        
-        file = request.files['file']
-        page_num = int(request.form.get('page_num', 0))
-        x0 = float(request.form.get('x0', 0))
-        y0 = float(request.form.get('y0', 0))
-        x1 = float(request.form.get('x1', 100))
-        y1 = float(request.form.get('y1', 100))
-        
-        # For now, return dummy text extraction
-        # In a real implementation, you would extract text from the specific coordinates
-        dummy_texts = [
-            "Invoice #INV-2024-001",
-            "Amount: $1,234.56",
-            "Date: 2024-05-19",
-            "ABC Company Ltd.",
-            "Website Development Services"
-        ]
-        
-        import random
-        return jsonify({'text': random.choice(dummy_texts)})
-        
-    except Exception as e:
-        return jsonify({'error': str(e)})
-
-
-@blueprint.route('/api/extract', methods=['POST'])
-def api_extract():
-    """
-    API endpoint to handle document extraction and save results
-    """
-    try:
-        # Get uploaded file
-        if 'file' not in request.files:
-            return jsonify({'success': False, 'error': 'No file uploaded'})
-        
-        file = request.files['file']
-        if file.filename == '':
-            return jsonify({'success': False, 'error': 'No file selected'})
-        
-        # Get schema configuration and extractor_id
-        schema_json = request.form.get('schema', '{}')
-        schema = json.loads(schema_json)
-        extractor_id = request.form.get('extractor_id')
-        
-        # Read file content
-        file_content = file.read()
-        
-        # Initialize the extraction service
-        from apps.services.extraction_service import DocumentExtractionService
-        extraction_service = DocumentExtractionService()
-        
-        # Extract data using OpenAI
-        results = extraction_service.extract_from_file(file_content, schema)
-        
-        return jsonify({
-            'success': True,
-            'results': results,
-            'filename': file.filename,
-            'extractor_id': extractor_id
-        })
-        
-    except Exception as e:
-        logger.exception("Extraction error: %s", e)
-        return jsonify({'success': False, 'error': str(e)})
-
-
-# @blueprint.route('/api/extract/<extractor_uid>', methods=['POST'])
-# def api_extract_by_uid(extractor_uid):
-#     try:
-#         from flask import current_app
-#         from apps.authentication.models import Users
-#         from apps.models.extractor import Extractor
-
-#         api_key = request.headers.get('X-API-Key')
-#         if not api_key:
-#             return jsonify({'success': False, 'error': 'API key required.'}), 401
-
-#         is_master_key = (api_key == current_app.config.get('MASTER_API_KEY'))
-#         if not is_master_key:
-#             user = Users.query.filter_by(api_key=api_key).first()
-#             if not user:
-#                 return jsonify({'success': False, 'error': 'Invalid API key'}), 401
-#         else:
-#             user = None
-
-#         extractor = Extractor.query.filter_by(uid=extractor_uid).first()
-#         if not extractor:
-#             return jsonify({'success': False, 'error': f'Extractor {extractor_uid} not found'}), 404
-
-#         if not is_master_key and user and extractor.user_id != user.id:
-#             return jsonify({'success': False, 'error': 'No permission to use this extractor'}), 403
-
-#         if 'file' not in request.files or request.files['file'].filename == '':
-#             return jsonify({'success': False, 'error': 'No file uploaded'}), 400
-
-#         file_content = request.files['file'].read()
-#         schema = extractor.schema
-
-#         # Initialize OpenAI client
-#         openai =  os.getenv('OPENAI_API_KEY')
-#         extraction_service = DocumentExtractionServiceV2(client=openai)
-
-#         results = extraction_service.extract_from_file(file_content, schema)
-
-#         return jsonify({
-#             'success': True,
-#             'results': results,
-#             'filename': request.files['file'].filename,
-#             'extractor': {
-#                 'uid': extractor.uid,
-#                 'name': extractor.name,
-#                 'schema': extractor.schema
-#             }
-#         })
-
-#     except Exception as e:
-#         logger.exception("Extraction error: %s", e)
-#         return jsonify({'success': False, 'error': str(e)}), 500
 
 
 
 @blueprint.route('/api/extract/<extractor_uid>', methods=['POST'])
 def api_extract_by_uid(extractor_uid):
-    """
-    API endpoint to extract document using saved extractor template by UUID
-    Requires API key authentication via X-API-Key header
-    
-    Supports two types of authentication:
-    1. Master API Key (set in config/environment) - bypasses user ownership checks
-    2. User API Key (generated per user) - checks extractor ownership
-    
-    Usage:
-    POST /api/extract/<extractor_uid>
-    Headers: X-API-Key: your-api-key-here
-    Body: multipart/form-data with 'file' field (PDF or image)
-    
-    Returns:
-    {
-        "success": true,
-        "results": {...},
-        "filename": "document.pdf",
-        "extractor": {
-            "uid": "...",
-            "name": "...",
-            "schema": {...}
-        }
-    }
-    """
+  
     try:
         from flask import current_app
         from apps.authentication.models import Users
         from apps.models.extractor import Extractor
         from apps.services.extraction_service import DocumentExtractionService
         
-        # Check for API key in headers
         api_key = request.headers.get('X-API-Key')
         
         if not api_key:
@@ -331,10 +65,8 @@ def api_extract_by_uid(extractor_uid):
                 'error': 'API key required. Please provide X-API-Key header'
             }), 401
         
-        # Check if it's the master API key
         is_master_key = (api_key == current_app.config.get('MASTER_API_KEY'))
         
-        # If not master key, validate as user API key
         if not is_master_key:
             user = Users.query.filter_by(api_key=api_key).first()
             
@@ -344,15 +76,15 @@ def api_extract_by_uid(extractor_uid):
                     'error': 'Invalid API key'
                 }), 401
         else:
-            user = None  # Master key doesn't need a user
+            user = None  
         
-        # Find extractor by UID
+ 
         extractor = Extractor.query.filter_by(uid=extractor_uid).first()
         
         if not extractor:
             return jsonify({'success': False, 'error': f'Extractor with UID {extractor_uid} not found'}), 404
         
-        # Check if extractor belongs to the user (skip check for master key)
+     
         if not is_master_key and user:
             if extractor.user_id is not None and extractor.user_id != user.id:
                 return jsonify({
@@ -360,7 +92,7 @@ def api_extract_by_uid(extractor_uid):
                     'error': 'You do not have permission to use this extractor'
                 }), 403
          
-        # Get uploaded file
+  
         if 'file' not in request.files:
             return jsonify({'success': False, 'error': 'No file uploaded'}), 400
         
@@ -368,27 +100,22 @@ def api_extract_by_uid(extractor_uid):
         if file.filename == '':
             return jsonify({'success': False, 'error': 'No file selected'}), 400
         
-        # Read file content
+      
         file_content = file.read()
         
-        # Use the extractor's schema
+   
         schema = extractor.schema
         
-        # Initialize the extraction service
+       
         extraction_service = DocumentExtractionService()
         
-        # Extract data using OpenAI
+      
         results = extraction_service.extract_from_file(file_content, schema)
         
         return jsonify({
             'success': True,
             'results': results,
             'filename': file.filename,
-            'extractor': {
-                'uid': extractor.uid,
-                'name': extractor.name,
-                'schema': extractor.schema
-            }
         })
         
     except Exception as e:
@@ -703,36 +430,20 @@ def api_list_extractors():
 
 @blueprint.route('/api/extractors/<identifier>/schema', methods=['GET'])
 def api_get_extractor_schema(identifier):
-    """
-    Get schema for a specific extractor by ID or UID
-    
-    Supports two modes:
-    1. Public access by UID (no authentication required)
-    2. Authenticated access by ID (requires login)
-    
-    Parameters:
-    - identifier: Either extractor ID (integer) or UID (UUID string)
-    
-    Returns:
-    - Extractor schema JSON with metadata
-    
-    Example:
-    GET /api/extractors/123/schema (by ID, requires auth)
-    GET /api/extractors/4e8868b8-ce91-47e8-9b78-0fef637a3288/schema (by UID, public)
-    """
+   
     try:
         from apps.models.extractor import Extractor
         
-        # Try to determine if identifier is an integer ID or UUID string
+    
         try:
             extractor_id = int(identifier)
             is_id = True
         except ValueError:
             is_id = False
         
-        # Fetch extractor
+      
         if is_id:
-            # Access by ID requires authentication
+        
             if not current_user.is_authenticated:
                 return jsonify({
                     'success': False,
@@ -787,17 +498,31 @@ def api_get_extractor_schema(identifier):
             
             return converted
         
+        # Dynamically generate the results structure based on fields
+        results = {}
+        for field in fields:
+            if 'subfields' in field:
+                results[field['name']] = [
+                    {
+                        subfield['name']: type_mapping.get(subfield.get('type', 'text'), subfield.get('type', 'string')) for subfield in field['subfields']
+                    }
+                ]
+            else:
+                results[field['name']] = type_mapping.get(field.get('type', 'text'), field.get('type', 'string'))
+
         # Convert all fields
         converted_fields = [convert_field_types(field) for field in fields]
-        
+
         return jsonify({
             'success': True,
             'id': extractor.id,
             'uid': extractor.uid,
             'name': extractor.name,
+            'schema_version': extractor.schema,
             'description': extractor.description,
             'created_at': extractor.created_at.isoformat() if extractor.created_at else None,
-            'fields': converted_fields
+            'fields': converted_fields,
+            'results': results,
         }), 200
 
         

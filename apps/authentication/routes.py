@@ -15,17 +15,16 @@ from flask_dance.contrib.github import github
 
 from apps import db, login_manager
 from apps.authentication import blueprint
-from apps.authentication.forms import LoginForm, CreateAccountForm
 from apps.authentication.models import Users
 from apps.authentication.util import verify_pass
 import logging
 
 logger = logging.getLogger(__name__)
 
-# API Key Authentication Endpoint
+
 @blueprint.route('/api/auth', methods=['POST'])
 def api_auth():
-    # Accept API key from JSON body, headers, or query string
+   
     api_key = None
     if request.is_json:
         api_key = request.json.get('api_key')
@@ -41,10 +40,7 @@ def api_auth():
     if not user:
         return jsonify({'error': 'Invalid API key'}), 403
     return jsonify({'success': True, 'user_id': user.id, 'username': user.username}), 200
-# -*- encoding: utf-8 -*-
-"""
-Copyright (c) 2019 - present AppSeed.us
-"""
+
 
 from flask import render_template, redirect, request, url_for
 from flask_login import (

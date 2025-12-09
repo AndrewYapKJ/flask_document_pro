@@ -7,6 +7,7 @@ import os
 import base64
 import json
 import io
+import fitz 
 try:
     from openai import OpenAI
     import logging
@@ -30,10 +31,9 @@ from typing import Dict, Any, Optional
 
 
 class DocumentExtractionService:
-    """Service for extracting data from documents using OpenAI"""
+   
     
     def __init__(self, api_key: Optional[str] = None):
-        """Initialize the service with OpenAI API key"""
         if OpenAI is None:
             logger.error("OpenAI package not available")
             self.client = None
@@ -41,20 +41,19 @@ class DocumentExtractionService:
             
         self.api_key = api_key or os.getenv('OPENAI_API_KEY')
         if not self.api_key:
-            # Don't raise error, just set up for dummy data mode
-            logger.warning("No OpenAI API key provided. Will use dummy data.")
+            logger.warning("No OpenAI API key provided.")
             self.client = None
         else:
             try:
                 logger.info("Initializing OpenAI client with API key: %s...", self.api_key[:10])
-                # Initialize OpenAI client with minimal parameters
+            
                 self.client = OpenAI(
                     api_key=self.api_key
                 )
                 logger.info("OpenAI client initialized successfully")
             except Exception as e:
                 logger.exception("Error initializing OpenAI client: %s", e)
-                # Fall back to dummy data mode
+             
                 self.client = None
     
     def _convert_pdf_to_image(self, file_bytes: bytes, max_pages: int = None) -> tuple[bytes, str]:
@@ -157,15 +156,7 @@ class DocumentExtractionService:
         return 'unknown'
     
     def _prepare_image_for_api(self, file_bytes: bytes) -> tuple[str, str]:
-        """
-        Prepare image data for OpenAI API
-        
-        Args:
-            file_bytes: File content as bytes
-            
-        Returns:
-            Tuple of (base64_string, mime_type)
-        """
+     
         file_type = self._detect_file_type(file_bytes)
         logger.debug("Detected file type: %s", file_type)
         
@@ -190,35 +181,27 @@ class DocumentExtractionService:
             mime_type = "image/jpeg"
             file_b64 = base64.b64encode(file_bytes).decode("utf-8")
             return file_b64, mime_type
-            
-    def extract_from_file(self, file_bytes: bytes, schema: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Extract data from document using OpenAI Vision API
+    def _extract_text_from_pdf(self, pdf_bytes: bytes):
+        """Extract all text from the PDF and return as a single string"""
+        doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+        text = ""
+        for page in doc:
+            text += page.get_text()
+        return text
         
-        Args:
-            file_bytes: The file content as bytes
-            schema: The expected data schema
-            
-        Returns:
-            Extracted data matching the schema
-        """
-        # If no API client, use dummy data
-        if not self.client:
-            logger.warning("No OpenAI client available, using dummy data")
-            return self._generate_dummy_data(schema)
+    def extract_from_file(self, file_bytes: bytes, schema: Dict[str, Any]) -> Dict[str, Any]:
+      
+      
         
         try:
-            # Convert file bytes to base64
+         
             file_b64, mime_type = self._prepare_image_for_api(file_bytes)
-            
-            # Build the extraction schema from the form fields
+         
+          
             extraction_schema = self._build_extraction_schema(schema)
             
-            logger.info("Sending document to OpenAI for extraction with schema: %s", extraction_schema)
-            
-            # Call OpenAI API
             response = self.client.chat.completions.create(
-                model="gpt-4o",  # Use gpt-4o-mini for cost effectiveness
+                model="gpt-4.1-mini",  
               messages=[
                     {
                         "role": "system",
@@ -248,6 +231,10 @@ class DocumentExtractionService:
                                             "url": f"data:{mime_type};base64,{file_b64}"
                                         }
                                     }
+                                    # {
+                                    #     "type": "text",
+                                    #     "text": f"Here is the full document text:\n{full_text}"
+                                    # }                                    
                                 ]
                     }
                     
@@ -256,41 +243,32 @@ class DocumentExtractionService:
                 response_format={"type": "json_object"}  # ensures valid JSON
             )
             
-            # Parse JSON output
+          
             extracted_data = json.loads(response.choices[0].message.content)
             logger.info("OpenAI extraction successful: %s", extracted_data)
             
-            # Convert the extracted data back to the format expected by the UI
+      
             return self._format_extraction_results(extracted_data, schema)
    
             
         except json.JSONDecodeError as e:
             logger.exception("JSON parsing error in OpenAI response: %s", e)
             logger.debug("Raw response: %s", response.choices[0].message.content)
-            # Return dummy data as fallback
-            return self._generate_dummy_data(schema)
+            raise e
+
             
         except Exception as e:
             logger.exception("Error in OpenAI extraction: %s", e)
             logger.debug("Error type: %s", type(e).__name__)
-            
-            # Check for specific error types
-            if hasattr(e, 'code'):
-                if e.code == 'insufficient_quota':
-                    logger.warning("OpenAI quota exceeded - falling back to demo data")
-                    return self._generate_demo_data_with_message(schema, "⚠️ OpenAI quota exceeded. Showing demo data.")
-                elif e.code == 'invalid_image_format':
-                    logger.warning("Invalid image format - falling back to demo data")
-                    return self._generate_demo_data_with_message(schema, "⚠️ Unsupported file format. Please use PNG, JPEG, GIF, WebP, or PDF files.")
-            
-            # Return dummy data as fallback for any other errors
-            return self._generate_dummy_data(schema)
+            raise e
+
+
     
     def _build_extraction_schema(self, form_schema: Dict[str, Any]) -> Dict[str, Any]:
         """Build OpenAI extraction schema from form schema with position information"""
         extraction_schema = {}
         
-        # Get document metadata if available
+   
         doc_metadata = form_schema.get('documentMetadata', {})
         pdf_info = doc_metadata.get('pdfInfo') or {}
         num_pages = pdf_info.get('numPages', 1)
@@ -304,13 +282,13 @@ class DocumentExtractionService:
             description = field.get('description', '')
             position = field.get('position', {})
             
-            # Build enhanced description with position information
+          
             enhanced_description = self._build_field_description_with_position(
                 field_name, description, position
             )
             
             if field_type == 'table':
-                # Handle table fields with subfield structure
+               
                 subfields = {}
                 for subfield in field.get('subfields', []):
                     subfield_name = subfield.get('name', '')
@@ -323,7 +301,7 @@ class DocumentExtractionService:
                     else:
                         subfields[subfield_name] = "string"
                 
-                # Table should be an array of objects
+            
                 extraction_schema[field_name] = {
                     "type": "array",
                     "description": enhanced_description,
@@ -334,12 +312,7 @@ class DocumentExtractionService:
                     "type": "number",
                     "description": enhanced_description
                 }
-            # elif field_type == 'date':
-            #     extraction_schema[field_name] = {
-            #         "type": "string",
-            #         "format": "YYYY-MM-DD",
-            #         "description": enhanced_description
-            #     }
+      
             elif field_type == 'boolean':
                 extraction_schema[field_name] = {
                     "type": "boolean",
@@ -431,100 +404,3 @@ class DocumentExtractionService:
         
         return results
     
-    def _generate_dummy_data(self, schema: Dict[str, Any]) -> Dict[str, Any]:
-        """Generate dummy data for testing purposes"""
-        results = {}
-        
-        for field in schema.get('fields', []):
-            field_name = field.get('name', '')
-            field_type = field.get('type', 'text')
-            
-            if field_type == 'table':
-                # Generate dummy table data based on the screenshot
-                if field_name.lower() == 'line_items':
-                    results[field_name] = [
-                        {
-                            "description": "Website development",
-                            "item_total_amount": 6000,
-                            "quantity": 1,
-                            "unit_price": 6000
-                        },
-                        {
-                            "description": "Website Hosting (Monthly)",
-                            "item_total_amount": 600,
-                            "quantity": 1,
-                            "unit_price": 600
-                        },
-                        {
-                            "description": "Domain Purchase - .com",
-                            "item_total_amount": 70,
-                            "quantity": 1,
-                            "unit_price": 70
-                        },
-                        {
-                            "description": "Website Support and Maintenance",
-                            "item_total_amount": 5000,
-                            "quantity": 1,
-                            "unit_price": 5000
-                        }
-                    ]
-                else:
-                    # Generic table data
-                    subfield_data = {}
-                    for subfield in field.get('subfields', []):
-                        subfield_type = subfield.get('type', 'text')
-                        if subfield_type == 'number':
-                            subfield_data[subfield['name']] = 100.00
-                        elif subfield_type == 'date':
-                            subfield_data[subfield['name']] = '2024-05-19'
-                        else:
-                            subfield_data[subfield['name']] = f"Sample {subfield['name']}"
-                    results[field_name] = [subfield_data, subfield_data]
-            
-            elif field_type == 'number':
-                # Use specific values based on field name
-                if 'total' in field_name.lower():
-                    results[field_name] = 11670
-                elif 'tax' in field_name.lower():
-                    results[field_name] = 0
-                else:
-                    results[field_name] = 123.45
-            
-            elif field_type == 'date':
-                results[field_name] = '2024-05-19'
-            
-            elif field_type == 'boolean':
-                results[field_name] = True
-            
-            else:
-                # String fields with specific dummy data
-                if 'date' in field_name.lower():
-                    results[field_name] = '2024-05-19'
-                elif 'number' in field_name.lower():
-                    results[field_name] = 'INV19052024001'
-                elif 'seller' in field_name.lower() or 'vendor' in field_name.lower():
-                    results[field_name] = 'Cemerlang IT & Network Solutions'
-                elif 'amount' in field_name.lower():
-                    results[field_name] = '11670'
-                else:
-                    results[field_name] = f"Sample {field_name} value"
-        
-        return results
-    
-    def _generate_demo_data_with_message(self, schema: Dict[str, Any], message: str) -> Dict[str, Any]:
-        """Generate demo data with a specific error/info message"""
-        results = self._generate_dummy_data(schema)
-        
-        # Add the message to the first text field or create a special message field
-        for field in schema.get('fields', []):
-            field_name = field.get('name', '')
-            field_type = field.get('type', 'text')
-            
-            if field_type == 'text':
-                results[field_name] = message
-                break
-        else:
-            # If no text field found, try to add message to a string field
-            results['_message'] = message
-        
-        return results

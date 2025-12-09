@@ -11,7 +11,6 @@ if (typeof window !== 'undefined' && (typeof window.DEBUG === 'undefined' || !wi
 
 class ExtractorManager {
     constructor() {
-        // Initialize PDF-related properties
         this.currentPDF = null;
         this.currentContainer = null;
         this.baseScale = null;
@@ -22,7 +21,6 @@ class ExtractorManager {
         this.resizeTimeout = null;
         this.lastContainerWidth = 0;
         
-        // Initialize extraction-related properties
         this.originalSchemaContent = null;
         this.lastExtractionResults = null;
         
@@ -39,7 +37,6 @@ class ExtractorManager {
     }
 
     initializeUploadState() {
-        // Add upload-only class for initial centering since no document is loaded
         const documentPanel = document.querySelector('.extractor-document-panel');
         if (documentPanel) {
             documentPanel.classList.add('upload-only');
@@ -47,39 +44,32 @@ class ExtractorManager {
     }
 
     setupEventListeners() {
-        // Handle navbar toggle clicks
         const navbarToggles = document.querySelectorAll('#mobile-collapse, #mobile-collapse1, .mobile-menu');
         navbarToggles.forEach(toggle => {
             toggle.addEventListener('click', () => this.handleNavbarToggle());
         });
 
-        // Field editor functionality
         document.querySelectorAll('.action-btn, .save-btn, .cancel-btn').forEach(btn => {
             btn.addEventListener('click', (e) => this.handleFieldAction(e));
         });
 
-        // Add field button
         const addFieldBtn = document.querySelector('.extractor-add-field-btn');
         if (addFieldBtn) {
             addFieldBtn.addEventListener('click', (e) => this.handleAddField(e));
         }
 
-        // Upload button
         const uploadBtn = document.querySelector('.upload-btn');
         if (uploadBtn) {
             uploadBtn.addEventListener('click', (e) => this.handleUpload(e));
         }
 
-        // Drag and drop functionality
         this.setupDragAndDrop();
 
-        // Extract button
         const extractBtn = document.querySelector('.extractor-bottom-bar .dashboard-btn-primary');
         if (extractBtn) {
             extractBtn.addEventListener('click', (e) => this.handleExtract(e));
         }
 
-        // Setup real-time field editing
         this.setupRealTimeFieldEditing();
     }
 
@@ -88,11 +78,9 @@ class ExtractorManager {
         const extractBtn = document.querySelector('.extractor-bottom-bar .dashboard-btn-primary');
         if (extractBtn) {
             console.log('Extract button found');
-            // Clone the button to remove all existing event listeners
             const newExtractBtn = extractBtn.cloneNode(true);
             extractBtn.parentNode.replaceChild(newExtractBtn, extractBtn);
             
-            // Attach fresh event handler
             newExtractBtn.addEventListener('click', (e) => this.handleExtract(e));
             console.log('Extract button listener attached');
         } else {
@@ -104,7 +92,6 @@ class ExtractorManager {
         const uploadCard = document.querySelector('.upload-card');
         if (!uploadCard) return;
 
-        // Prevent default drag behaviors
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
             uploadCard.addEventListener(eventName, (e) => {
                 e.preventDefault();
@@ -112,7 +99,6 @@ class ExtractorManager {
             });
         });
 
-        // Highlight drop area when item is dragged over it
         ['dragenter', 'dragover'].forEach(eventName => {
             uploadCard.addEventListener(eventName, () => {
                 uploadCard.classList.add('drag-highlight');
@@ -125,7 +111,6 @@ class ExtractorManager {
             });
         });
 
-        // Handle dropped files
         uploadCard.addEventListener('drop', (e) => {
             const files = e.dataTransfer.files;
             if (files.length > 0) {
@@ -135,7 +120,6 @@ class ExtractorManager {
     }
 
     setupRealTimeFieldEditing() {
-        // Add event listeners for real-time field name updates
         document.querySelectorAll('.field-name-input').forEach(input => {
             if (!input.hasAttribute('data-listener-attached')) {
                 input.addEventListener('input', (e) => {
@@ -149,7 +133,6 @@ class ExtractorManager {
             }
         });
 
-        // Add event listeners for real-time field description updates
         document.querySelectorAll('.field-desc-input').forEach(textarea => {
             if (!textarea.hasAttribute('data-listener-attached')) {
                 textarea.addEventListener('input', (e) => {
@@ -166,7 +149,6 @@ class ExtractorManager {
 
     handleNavbarToggle() {
         const mainRow = document.querySelector('.extractor-main-row');
-        // Auto-adjust based on navbar state if needed
     }
 
     handleFieldAction(e) {
@@ -214,7 +196,6 @@ class ExtractorManager {
         field.classList.add('expanded');
         editor.style.display = 'flex';
 
-                // Store original field values for cancel functionality
         const fieldNameInput = editor.querySelector('.field-name-input');
         const fieldDescInput = editor.querySelector('.field-desc-input');
         const fieldTypeSelect = editor.querySelector('.field-type-select');
@@ -223,7 +204,6 @@ class ExtractorManager {
         if (fieldDescInput) fieldDescInput.dataset.originalValue = fieldDescInput.value;
         if (fieldTypeSelect) fieldTypeSelect.dataset.originalValue = fieldTypeSelect.value;
 
-        // Store original table column values if this is a table field
         const tableColumns = editor.querySelectorAll('.table-column-row');
         tableColumns.forEach(columnRow => {
             const nameInput = columnRow.querySelector('.column-name-input');
@@ -235,7 +215,6 @@ class ExtractorManager {
             if (typeSelect) typeSelect.dataset.originalValue = typeSelect.value;
         });
 
-        // Store original display values
         const fieldNameSpan = field.querySelector('.field-name');
         const fieldDescDiv = field.querySelector('.field-description');
         const typeBadge = field.querySelector('.field-type-badge');
@@ -253,10 +232,8 @@ class ExtractorManager {
     }
 
     saveField(field, editor, idx) {
-        // Update field display with the edited values
         this.updateFieldDisplay(field, editor);
         
-        // Remove the "new field" marker if it exists (field is now saved)
         if (field.hasAttribute('data-is-new-field')) {
             field.removeAttribute('data-is-new-field');
         }
@@ -264,7 +241,6 @@ class ExtractorManager {
         field.classList.remove('expanded');
         editor.style.display = 'none';
 
-        // If this is a table field, ensure subfields are visible and synced
         const fieldTypeSelect = editor.querySelector('.field-type-select');
         const tableSubfields = field.querySelector('.table-subfields');
 
@@ -272,11 +248,9 @@ class ExtractorManager {
             tableSubfields.style.display = 'block';
             field.classList.add('table-field');
 
-            // Sync configuration columns to display elements
             this.syncTableConfigurationToDisplay(field, editor);
         }
 
-        // Reattach extract button listener after DOM changes
         this.attachExtractButtonListener();
 
         console.log('Saving field:', idx);
@@ -289,11 +263,9 @@ class ExtractorManager {
         
         if (!subfieldsContainer || !addSubfieldBtn) return;
 
-        // Clear existing subfield wrappers (except the add button)
         const existingWrappers = subfieldsContainer.querySelectorAll('.subfield-wrapper');
         existingWrappers.forEach(wrapper => wrapper.remove());
 
-        // Create display elements for each configuration row
         tableColumns.forEach((columnRow, index) => {
             const nameInput = columnRow.querySelector('.column-name-input');
             const descInput = columnRow.querySelector('.column-description-input');
@@ -319,17 +291,14 @@ class ExtractorManager {
             addSubfieldBtn.insertAdjacentHTML('beforebegin', subfieldHtml);
         });
 
-        // Add event listeners to the new delete buttons
         const newDeleteBtns = subfieldsContainer.querySelectorAll('.delete-subfield-btn');
         newDeleteBtns.forEach(btn => {
             btn.addEventListener('click', (e) => this.handleDeleteSubfield(e));
         });
 
-        // Update the remove column buttons in configuration to use the full remove handler
         tableColumns.forEach(columnRow => {
             const removeBtn = columnRow.querySelector('.remove-column-btn');
             if (removeBtn) {
-                // Remove old event listener and add new one
                 const newBtn = removeBtn.cloneNode(true);
                 removeBtn.parentNode.replaceChild(newBtn, removeBtn);
                 newBtn.addEventListener('click', (e) => this.handleRemoveColumn(e));
@@ -338,26 +307,22 @@ class ExtractorManager {
 
         this.applyThemeStyles();
         
-        // Reattach extract button listener after table DOM updates
         this.attachExtractButtonListener();
     }
 
     updateFieldDisplay(field, editor) {
-        // Update field name
         const nameInput = editor.querySelector('.field-name-input');
         const fieldNameSpan = field.querySelector('.field-name');
         if (nameInput && fieldNameSpan) {
             fieldNameSpan.textContent = nameInput.value || 'unnamed_field';
         }
 
-        // Update field description
         const descInput = editor.querySelector('.field-desc-input');
         const fieldDescDiv = field.querySelector('.field-description');
         if (descInput && fieldDescDiv) {
             fieldDescDiv.textContent = descInput.value || 'No description provided';
         }
 
-        // Update field type badge
         const typeSelect = editor.querySelector('.field-type-select');
         const typeBadge = field.querySelector('.field-type-badge');
         if (typeSelect && typeBadge) {
@@ -365,7 +330,6 @@ class ExtractorManager {
             typeBadge.textContent = newType;
             typeBadge.className = `field-type-badge ${newType}`;
             
-            // Update field row class for table fields
             if (newType === 'table') {
                 field.classList.add('table-field');
             } else {
@@ -373,12 +337,10 @@ class ExtractorManager {
             }
         }
 
-        // Apply theme styles to the updated elements
         this.applyThemeStyles();
     }
 
     cancelEdit(field, editor) {
-        // Restore original input values
         const nameInput = editor.querySelector('.field-name-input');
         const descInput = editor.querySelector('.field-desc-input');
         const typeSelect = editor.querySelector('.field-type-select');
@@ -393,7 +355,6 @@ class ExtractorManager {
             typeSelect.value = typeSelect.dataset.originalValue;
         }
 
-        // Restore original display values
         const fieldNameSpan = field.querySelector('.field-name');
         const fieldDescDiv = field.querySelector('.field-description');
         const typeBadge = field.querySelector('.field-type-badge');
@@ -411,7 +372,6 @@ class ExtractorManager {
             }
         }
 
-        // Restore field row class for table fields
         const originalType = editor.dataset.originalFieldType;
         if (originalType === 'table') {
             field.classList.add('table-field');
@@ -419,7 +379,6 @@ class ExtractorManager {
             field.classList.remove('table-field');
         }
 
-        // Restore original table column values if this is a table field
         const tableColumns = editor.querySelectorAll('.table-column-row');
         tableColumns.forEach((columnRow, index) => {
             const nameInput = columnRow.querySelector('.column-name-input');
@@ -437,15 +396,12 @@ class ExtractorManager {
             }
         });
 
-        // Remove any newly added table columns that weren't saved
-        // (columns withouth originalValue data are newly added during this edit session)
         const newlyAddedColumns = Array.from(tableColumns).filter(columnRow => {
             const nameInput = columnRow.querySelector('.column-name-input');
             return nameInput && nameInput.dataset.originalValue === undefined;
         });
         newlyAddedColumns.forEach(columnRow => columnRow.remove());
 
-        // Update the table display to reflect the restored values
         if (originalType === 'table') {
             const remainingColumns = editor.querySelectorAll('.table-column-row');
             remainingColumns.forEach((columnRow, index) => {
@@ -460,7 +416,6 @@ class ExtractorManager {
             });
         }
 
-        // Hide table subfields if type changed back from table
         const tableSubfields = field.querySelector('.table-subfields');
         if (tableSubfields && originalType !== 'table') {
             tableSubfields.style.display = 'none';
@@ -468,7 +423,6 @@ class ExtractorManager {
             tableSubfields.style.display = 'block';
         }
 
-        // If this is a newly added field that hasn't been saved, remove it
         if (field.hasAttribute('data-is-new-field')) {
             field.remove();
             return;
@@ -488,7 +442,6 @@ class ExtractorManager {
     handleAddField(e) {
         e.preventDefault();
         
-        // Find the schema container and add button
         const schemaCard = document.querySelector('.extractor-schema-card');
         const addFieldBtn = document.querySelector('.extractor-add-field-btn');
         
@@ -497,30 +450,23 @@ class ExtractorManager {
             return;
         }
         
-        // Get the next field index
         const existingFields = document.querySelectorAll('.extractor-field-row');
         const nextIndex = existingFields.length + 1;
         
-        // Create new field HTML
         const newFieldHtml = this.createNewFieldHtml(nextIndex);
         
-        // Insert before the add button
         addFieldBtn.insertAdjacentHTML('beforebegin', newFieldHtml);
         
-        // Setup event listeners for the new field only
         const newField = document.getElementById(`field-${nextIndex}`);
         const newEditor = document.getElementById(`editor-${nextIndex}`);
         
         if (newField && newEditor) {
-            // Mark this as a newly added field
             newField.setAttribute('data-is-new-field', 'true');
             
-            // Add event listeners to the new field's buttons only
             newField.querySelectorAll('.action-btn, .save-btn, .cancel-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => this.handleFieldAction(e));
             });
             
-            // Add event listeners to the new field's select and inputs for real-time editing
             const nameInput = newEditor.querySelector('.field-name-input');
             const descInput = newEditor.querySelector('.field-desc-input');
             
@@ -542,14 +488,11 @@ class ExtractorManager {
                 });
             }
             
-            // Setup table field events for the new field
             this.setupTableFieldEventsForElement(newEditor);
             this.applyThemeStyles();
             
-            // Auto-open the edit mode for the new field
             setTimeout(() => {
                 this.editField(newField, newEditor);
-                // Focus on the field name input
                 const nameInput = newEditor.querySelector('.field-name-input');
                 if (nameInput) {
                     nameInput.focus();
@@ -633,13 +576,11 @@ class ExtractorManager {
         e.preventDefault();
         console.log('Upload button clicked');
         
-        // Create file input element
         const fileInput = document.createElement('input');
         fileInput.type = 'file';
         fileInput.accept = '.pdf,.png,.jpg,.jpeg';
         fileInput.multiple = false;
         
-        // Handle file selection
         fileInput.addEventListener('change', (event) => {
             const file = event.target.files[0];
             if (file) {
@@ -648,21 +589,18 @@ class ExtractorManager {
             }
         });
         
-        // Trigger file picker
         fileInput.click();
     }
 
     processUploadedFile(file) {
         console.log('Processing uploaded file:', file.name);
         
-        // Validate file size (10MB limit)
         const maxSize = 10 * 1024 * 1024; // 10MB in bytes
         if (file.size > maxSize) {
             alert('File size exceeds 10MB limit. Please choose a smaller file.');
             return;
         }
 
-        // Validate file type
         const allowedTypes = ['application/pdf', 'image/png', 'image/jpeg', 'image/jpg'];
         if (!allowedTypes.includes(file.type)) {
             alert('Please select a PDF, PNG, or JPG file.');
@@ -671,10 +609,8 @@ class ExtractorManager {
 
         console.log('File validation passed, updating display...');
         
-        // Update UI to show selected file
         this.updateUploadDisplay(file);
         
-        // Store the file for extraction
         this.selectedFile = file;
         
         console.log('File selected:', file.name, 'Size:', file.size, 'Type:', file.type);
@@ -692,40 +628,33 @@ class ExtractorManager {
             return;
         }
         
-        // Remove upload-only class for centering since we're showing document
         if (documentPanel) {
             documentPanel.classList.remove('upload-only');
         }
         
-        // Hide upload card and show document preview
         uploadCard.style.display = 'none';
         documentPreview.style.display = 'flex';
         
-        // Update document header info
         const documentName = documentPreview.querySelector('.document-name');
         const documentSize = documentPreview.querySelector('.document-size');
         
         if (documentName) documentName.textContent = file.name;
         if (documentSize) documentSize.textContent = this.formatFileSize(file.size);
         
-        // Add event listeners for header buttons
         const uploadBtn = documentPreview.querySelector('.upload-btn');
         const removeBtn = documentPreview.querySelector('.remove-file-btn');
         
         if (uploadBtn) {
-            // Remove any existing event listeners to prevent multiple firing
             uploadBtn.replaceWith(uploadBtn.cloneNode(true));
             const newUploadBtn = documentPreview.querySelector('.upload-btn');
             newUploadBtn.addEventListener('click', (e) => this.handleUpload(e));
         }
         if (removeBtn) {
-            // Remove any existing event listeners
             removeBtn.replaceWith(removeBtn.cloneNode(true));
             const newRemoveBtn = documentPreview.querySelector('.remove-file-btn');
             newRemoveBtn.addEventListener('click', (e) => this.handleRemoveFile(e));
         }
         
-        // Render the document content
         this.renderDocumentContent(file);
         
         console.log('Document preview updated successfully');
@@ -740,10 +669,8 @@ class ExtractorManager {
             return;
         }
 
-        // Cleanup any existing observers
         this.cleanupPDFObservers();
         
-        // Clear existing content
         documentContent.innerHTML = '<div class="loading-preview">Loading document...</div>';
         
         if (file.type === 'application/pdf') {
@@ -758,12 +685,9 @@ class ExtractorManager {
     renderPDFWithCanvas(container, file) {
         console.log('Rendering PDF with Canvas');
         
-        // Create file URL for PDF.js
         const fileURL = URL.createObjectURL(file);
         
-        // Load PDF.js library if not already loaded
         if (typeof pdfjsLib === 'undefined') {
-            // Load PDF.js from CDN
             const script = document.createElement('script');
             script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
             script.onload = () => {
@@ -786,37 +710,29 @@ class ExtractorManager {
             const pdf = await pdfjsLib.getDocument(fileURL).promise;
             console.log(`PDF loaded. Number of pages: ${pdf.numPages}`);
 
-            // Clear loading message
             container.innerHTML = '';
 
-            // Create canvas container for all pages
             const pagesContainer = document.createElement('div');
             pagesContainer.className = 'pdf-pages-container';
             container.appendChild(pagesContainer);
 
-            // Calculate consistent scale for all pages based on first page
             const firstPage = await pdf.getPage(1);
             const firstPageViewport = firstPage.getViewport({ scale: 1 });
             
-            // Get actual container width and calculate scale once for all pages
             const containerWidth = pagesContainer.clientWidth || container.clientWidth || 600;
             const baseDisplayScale = Math.min((containerWidth - 20) / firstPageViewport.width, 3);
             
-            // Store scale and PDF reference for responsive updates
             this.currentPDF = pdf;
             this.currentContainer = pagesContainer;
             this.baseScale = baseDisplayScale;
             this.baseViewport = firstPageViewport;
 
-            // Render all pages with consistent scale
             for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
                 await this.renderPDFPage(pdf, pageNum, pagesContainer, baseDisplayScale);
             }
 
-            // Clean up the object URL
             URL.revokeObjectURL(fileURL);
             
-            // Add resize listener for responsive behavior
             this.setupPDFResizeListener();
             
         } catch (error) {
@@ -833,34 +749,27 @@ class ExtractorManager {
         try {
             const page = await pdf.getPage(pageNum);
             
-            // Create canvas for this page
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             
-            // Get device pixel ratio for high-DPI displays
             const devicePixelRatio = window.devicePixelRatio || 1;
             
-            // Use provided scale or calculate new one
             let finalDisplayScale;
             if (displayScale !== null) {
                 finalDisplayScale = displayScale;
             } else {
-                // Fallback calculation if no scale provided
                 const containerWidth = container.clientWidth || 600;
                 const viewport = page.getViewport({ scale: 1 });
                 finalDisplayScale = Math.min((containerWidth - 20) / viewport.width, 3);
             }
             
-            // Calculate viewport and render scale
             const viewport = page.getViewport({ scale: 1 });
             const renderScale = finalDisplayScale * 3 * devicePixelRatio; 
             const scaledViewport = page.getViewport({ scale: renderScale });
 
-            // Set canvas dimensions (high resolution)
             canvas.width = scaledViewport.width;
             canvas.height = scaledViewport.height;
             
-            // Set display dimensions (consistent across all pages)
             const displayWidth = (viewport.width * finalDisplayScale);
             const displayHeight = (viewport.height * finalDisplayScale);
             
@@ -872,18 +781,14 @@ class ExtractorManager {
             canvas.style.borderRadius = '8px';
             canvas.className = 'pdf-page';
             
-            // Improve canvas rendering quality
             ctx.imageSmoothingEnabled = true;
             ctx.imageSmoothingQuality = 'high';
-            // Additional quality settings for crisp text
             if (ctx.textRenderingOptimization) {
                 ctx.textRenderingOptimization = 'optimizeQuality';
             }
             
-            // Add canvas to container
             container.appendChild(canvas);
 
-            // Render page
             const renderContext = {
                 canvasContext: ctx,
                 viewport: scaledViewport
@@ -898,7 +803,6 @@ class ExtractorManager {
     }
 
     setupPDFResizeListener() {
-        // Remove existing listeners if any
         if (this.resizeListener) {
             window.removeEventListener('resize', this.resizeListener);
         }
@@ -906,7 +810,6 @@ class ExtractorManager {
             this.resizeObserver.disconnect();
         }
         
-        // Use ResizeObserver for immediate container width changes
         if (this.currentContainer && 'ResizeObserver' in window) {
             this.resizeObserver = new ResizeObserver((entries) => {
                 for (let entry of entries) {
@@ -924,7 +827,6 @@ class ExtractorManager {
             this.lastContainerWidth = this.currentContainer.clientWidth;
         }
         
-        // Fallback window resize listener
         this.resizeListener = () => {
             clearTimeout(this.resizeTimeout);
             this.resizeTimeout = setTimeout(() => {
@@ -933,7 +835,6 @@ class ExtractorManager {
         };
         window.addEventListener('resize', this.resizeListener);
         
-        // Listen for sidebar toggle specifically
         const navbar = document.querySelector('.pcoded-navbar');
         if (navbar) {
             const observer = new MutationObserver(() => {
@@ -954,12 +855,10 @@ class ExtractorManager {
             return;
         }
         
-        // Force a reflow to get accurate container width
         this.currentContainer.style.display = 'none';
         this.currentContainer.offsetHeight; // Trigger reflow
         this.currentContainer.style.display = '';
         
-        // Get the actual current container width
         const containerWidth = this.currentContainer.clientWidth || this.currentContainer.offsetWidth || 600;
         const newDisplayScale = Math.min((containerWidth - 20) / this.baseViewport.width, 3);
         
@@ -969,7 +868,6 @@ class ExtractorManager {
             newScale: newDisplayScale
         });
         
-        // Re-render if scale changed (even small changes for responsiveness)
         if (Math.abs(newDisplayScale - this.baseScale) > 0.02) {
             this.baseScale = newDisplayScale;
             this.reRenderPDFPages();
@@ -981,10 +879,8 @@ class ExtractorManager {
             return;
         }
         
-        // Clear existing pages
         this.currentContainer.innerHTML = '';
         
-        // Re-render all pages with new scale
         for (let pageNum = 1; pageNum <= this.currentPDF.numPages; pageNum++) {
             await this.renderPDFPage(this.currentPDF, pageNum, this.currentContainer, this.baseScale);
         }
@@ -1014,7 +910,6 @@ class ExtractorManager {
         
         const fileURL = URL.createObjectURL(file);
         
-        // Clear loading message
         container.innerHTML = '';
         
         const img = document.createElement('img');
@@ -1065,10 +960,8 @@ class ExtractorManager {
             </div>
         `;
         
-        // Insert after upload card
         uploadPanel.appendChild(previewContainer);
         
-        // Add toggle functionality
         const toggleBtn = previewContainer.querySelector('.preview-toggle-btn');
         const previewContent = previewContainer.querySelector('.preview-content');
         
@@ -1121,25 +1014,20 @@ class ExtractorManager {
     handleRemoveFile(e) {
         e.preventDefault();
         
-        // Clear the selected file
         this.selectedFile = null;
         
-        // Reset the upload display
         this.resetUploadDisplay();
         
-        // Clear document content
         const documentContent = document.querySelector('.document-content');
         if (documentContent) {
             documentContent.innerHTML = '';
         }
         
-        // Hide document preview container
         const documentPreview = document.querySelector('.document-preview-container');
         if (documentPreview) {
             documentPreview.style.display = 'none';
         }
         
-        // Show upload card and add centering class
         const uploadCard = document.querySelector('.upload-card');
         const documentPanel = document.querySelector('.extractor-document-panel');
         if (uploadCard) {
@@ -1154,7 +1042,6 @@ class ExtractorManager {
         const uploadCard = document.querySelector('.upload-card');
         const cardBody = uploadCard.querySelector('.card-body');
         
-        // Reset to original upload UI
         cardBody.innerHTML = `
             <div class="upload-icon">
                 <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -1167,11 +1054,9 @@ class ExtractorManager {
             <div class="dashboard-card-text" style="font-size:0.98rem;color:#888;margin-bottom:0;">PDF, PNG, JPG up to 10MB</div>
         `;
         
-        // Re-add event listener for the upload button
         const uploadBtn = cardBody.querySelector('.upload-btn');
         uploadBtn.addEventListener('click', (e) => this.handleUpload(e));
         
-        // Re-setup drag and drop
         this.setupDragAndDrop();
     }
 
@@ -1188,22 +1073,17 @@ class ExtractorManager {
     handleExtract(e) {
         e.preventDefault();
         
-        // Check if a file is selected
         if (!this.selectedFile) {
             alert('Please select a file first.');
             return;
         }
 
-        // Get the current schema configuration
         const schemaConfig = this.getCurrentSchemaConfig();
         
-        // Show loading state
         this.showExtractionLoading();
         
-        // First, save the extractor template to get an extractor_id
         this.saveExtractorTemplate(schemaConfig)
             .then(extractorId => {
-                // Now perform extraction with the extractor_id
                 return this.performExtraction(extractorId, schemaConfig);
             })
             .catch(error => {
@@ -1214,7 +1094,6 @@ class ExtractorManager {
     }
 
     async saveExtractorTemplate(schemaConfig) {
-        // Generate auto name with timestamp and field count
         const timestamp = new Date().toISOString().split('T')[0];
         const fieldCount = schemaConfig.fields ? schemaConfig.fields.length : 0;
         const autoName = `Invoice_Extractor_${timestamp}_${fieldCount}fields`;
@@ -1242,14 +1121,12 @@ class ExtractorManager {
     }
 
     async performExtraction(extractorId, schemaConfig) {
-        // Create FormData for file upload
         const formData = new FormData();
         formData.append('file', this.selectedFile);
         formData.append('schema', JSON.stringify(schemaConfig));
         formData.append('extractor_id', extractorId);
         
         try {
-            // Send extraction request
             const response = await fetch('/api/extract', {
                 method: 'POST',
                 body: formData
@@ -1273,7 +1150,6 @@ class ExtractorManager {
     getCurrentSchemaConfig() {
         const fields = [];
         
-        // Get all field rows
         document.querySelectorAll('.extractor-field-row').forEach((fieldRow, index) => {
             const fieldName = fieldRow.querySelector('.field-name').textContent.trim();
             const fieldType = fieldRow.querySelector('.field-type-badge').textContent.trim();
@@ -1285,7 +1161,6 @@ class ExtractorManager {
                 description: fieldDesc
             };
             
-            // Handle table fields with subfields
             if (fieldType === 'table') {
                 const subfields = [];
                 fieldRow.querySelectorAll('.subfield-wrapper').forEach(subfieldWrapper => {
@@ -1327,19 +1202,15 @@ class ExtractorManager {
     }
 
     renderExtractionResults(results) {
-    // Use new UI logic for extraction results
     this.lastExtractionResults = results;
     this.switchToExtractedState();
     }
 
     switchToExtractedState() {
-        // Store the original schema panel content for restoration
         const schemaPanel = document.querySelector('.extractor-schema-panel');
         if (!schemaPanel) return;
         
-        // Store original content if not already stored
         if (!this.originalSchemaContent) {
-            // Clear any data attributes before storing to ensure clean restoration
             const panelClone = schemaPanel.cloneNode(true);
             panelClone.querySelectorAll('[data-listener-attached]').forEach(el => {
                 el.removeAttribute('data-listener-attached');
@@ -1348,7 +1219,6 @@ class ExtractorManager {
             console.log('Stored original schema content for restoration');
         }
         
-        // Replace the entire schema panel with extraction results UI
         this.replaceWithExtractionUI();
     }
 
@@ -1356,7 +1226,6 @@ class ExtractorManager {
         const schemaPanel = document.querySelector('.extractor-schema-panel');
         if (!schemaPanel) return;
         
-        // Create the new extraction results UI
         const extractionUI = `
             <div class="dashboard-card extraction-results-card">
                 <div class="dashboard-title extraction-title">Extraction Results</div>
@@ -1387,10 +1256,8 @@ class ExtractorManager {
             </div>
         `;
         
-        // Replace the content
         schemaPanel.innerHTML = extractionUI;
         
-        // Add event listeners for navigation buttons
         const previousBtn = schemaPanel.querySelector('.previous-btn');
         const nextBtn = schemaPanel.querySelector('.next-btn');
         
@@ -1402,7 +1269,6 @@ class ExtractorManager {
             nextBtn.addEventListener('click', () => this.handleNextStep());
         }
         
-        // Now populate the results container with extracted data
         this.populateExtractionResults();
     }
 
@@ -1412,16 +1278,12 @@ class ExtractorManager {
         
         let resultsHTML = '';
         
-        // Get schema field mapping
         const schemaMapping = this.getSchemaFieldMapping();
         
-        // Process each field result
         Object.entries(this.lastExtractionResults).forEach(([fieldName, value]) => {
             if (fieldName === 'line_items' && Array.isArray(value)) {
-                // Handle table data
                 resultsHTML += this.createTableResultHTML(fieldName, value, schemaMapping);
             } else {
-                // Handle regular fields
                 resultsHTML += this.createFieldResultHTML(fieldName, value, schemaMapping);
             }
         });
@@ -1430,7 +1292,6 @@ class ExtractorManager {
     }
 
     createFieldResultHTML(fieldName, value, schemaMapping = {}) {
-        // Use schema field name if available, otherwise format the fieldName
         const displayName = fieldName;
         const displayValue = value !== null && value !== undefined && value !== '' 
             ? String(value) 
@@ -1449,7 +1310,6 @@ class ExtractorManager {
     }
 
     createTableResultHTML(fieldName, tableData, schemaMapping = {}) {
-        // Use schema field name if available, otherwise format the fieldName
         const displayName = fieldName;
         
         if (!Array.isArray(tableData) || tableData.length === 0) {
@@ -1478,7 +1338,6 @@ class ExtractorManager {
     }
 
     formatFieldName(fieldName) {
-        // Convert field names to readable format
         return fieldName
             .replace(/_/g, ' ')
             .replace(/([a-z])([A-Z])/g, '$1 $2')
@@ -1488,11 +1347,9 @@ class ExtractorManager {
     }
 
     getSchemaFieldMapping() {
-        // Create mapping from original schema field names to display names
         const mapping = {};
         
         if (this.originalSchemaContent) {
-            // Parse original schema content to get field names
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = this.originalSchemaContent;
             
@@ -1504,7 +1361,6 @@ class ExtractorManager {
                     const originalName = fieldNameSpan.textContent.trim();
                     const fieldTypeText = fieldType.textContent.trim().toLowerCase();
                     
-                    // Map common field mappings
                     if (originalName.toLowerCase().includes('invoice') && originalName.toLowerCase().includes('number')) {
                         mapping['invoice_number'] = originalName;
                     }
@@ -1528,13 +1384,11 @@ class ExtractorManager {
     }
 
     addNavigationBar() {
-        // Remove existing bottom bar
         const existingBottomBar = document.querySelector('.extractor-bottom-bar');
         if (existingBottomBar) {
             existingBottomBar.remove();
         }
         
-        // Create navigation bar
         const navigationBar = document.createElement('div');
         navigationBar.className = 'extractor-navigation-bar';
         navigationBar.innerHTML = `
@@ -1554,13 +1408,11 @@ class ExtractorManager {
             </button>
         `;
         
-        // Add to schema panel
         const schemaPanel = document.querySelector('.extractor-schema-panel');
         if (schemaPanel) {
             schemaPanel.appendChild(navigationBar);
         }
         
-        // Add event listeners for navigation buttons
         const previousBtn = navigationBar.querySelector('.previous-btn');
         const nextBtn = navigationBar.querySelector('.next-btn');
         
@@ -1574,38 +1426,31 @@ class ExtractorManager {
     }
 
     handlePreviousStep() {
-        // Return to schema editing mode
         this.switchToEditingState();
     }
 
     handleNextStep() {
-        // Navigate to export UI (placeholder for now)
         alert('Export functionality will be implemented in the next phase.\n\nFeatures will include:\n- Export to JSON\n- Export to Excel\n- Export to CSV');
     }
 
     switchToEditingState() {
-        // Restore the original schema panel content
         const schemaPanel = document.querySelector('.extractor-schema-panel');
         if (schemaPanel && this.originalSchemaContent) {
             console.log('Restoring original schema content...');
             schemaPanel.innerHTML = this.originalSchemaContent;
             
-            // Wait for DOM to be ready, then re-initialize all event listeners
             setTimeout(() => {
                 console.log('DOM restored, initializing event listeners...');
                 this.initializeAllEventListeners();
             }, 100);
         }
         
-        // Clear stored extraction results
         this.lastExtractionResults = null;
     }
 
     initializeAllEventListeners() {
-        // Comprehensive event listener setup for restored content
         console.log('Initializing all event listeners...');
         
-        // Log current DOM state
         const allFields = document.querySelectorAll('.extractor-field-row');
         const allActionButtons = document.querySelectorAll('.action-btn, .save-btn, .cancel-btn');
         console.log(`Found ${allFields.length} fields and ${allActionButtons.length} action buttons`);
@@ -1620,26 +1465,22 @@ class ExtractorManager {
     }
 
     restoreBottomBar() {
-        // Check if bottom bar already exists
         const existingBottomBar = document.querySelector('.extractor-bottom-bar');
         if (existingBottomBar) {
             return; // Already exists
         }
         
-        // Create and add the original bottom bar
         const bottomBar = document.createElement('div');
         bottomBar.className = 'extractor-bottom-bar';
         bottomBar.innerHTML = `
             <button class="dashboard-btn dashboard-btn-primary">Extract Document</button>
         `;
         
-        // Add event listener for extract button
         const extractBtn = bottomBar.querySelector('.dashboard-btn-primary');
         if (extractBtn) {
             extractBtn.addEventListener('click', (e) => this.handleExtract(e));
         }
         
-        // Add to schema panel
         const schemaPanel = document.querySelector('.extractor-schema-panel');
         if (schemaPanel) {
             schemaPanel.appendChild(bottomBar);
@@ -1647,19 +1488,16 @@ class ExtractorManager {
     }
 
     clearExtractionResults() {
-        // Remove all field value displays
         document.querySelectorAll('.field-value-display').forEach(element => {
             element.remove();
         });
         
-        // Remove all table value displays
         document.querySelectorAll('.table-value-display').forEach(element => {
             element.remove();
         });
     }
 
     populateFieldsWithResults(results) {
-        // Iterate through all field rows and populate them with extracted data
         document.querySelectorAll('.extractor-field-row').forEach((fieldRow) => {
             const fieldNameElement = fieldRow.querySelector('.field-name');
             const fieldTypeElement = fieldRow.querySelector('.field-type-badge');
@@ -1669,7 +1507,6 @@ class ExtractorManager {
             const fieldName = fieldNameElement.textContent.trim();
             const fieldType = fieldTypeElement.textContent.trim();
             
-            // Check if we have data for this field
             if (results.hasOwnProperty(fieldName)) {
                 const value = results[fieldName];
                 
@@ -1683,22 +1520,18 @@ class ExtractorManager {
     }
 
     populateRegularField(fieldRow, value) {
-        // Find or create the field value display
         let valueDisplay = fieldRow.querySelector('.field-value-display');
         
         if (!valueDisplay) {
-            // Create value display if it doesn't exist
             valueDisplay = document.createElement('div');
             valueDisplay.className = 'field-value-display';
             
-            // Insert after the field description
             const fieldDescription = fieldRow.querySelector('.field-description');
             if (fieldDescription) {
                 fieldDescription.parentNode.insertBefore(valueDisplay, fieldDescription.nextSibling);
             }
         }
         
-        // Set the value
         if (value === null || value === undefined || value === '') {
             valueDisplay.innerHTML = '<span class="no-value">No value extracted</span>';
             valueDisplay.className = 'field-value-display no-value';
@@ -1709,22 +1542,18 @@ class ExtractorManager {
     }
 
     populateTableField(fieldRow, tableData) {
-        // Find or create the table value display
         let tableDisplay = fieldRow.querySelector('.table-value-display');
         
         if (!tableDisplay) {
-            // Create table display if it doesn't exist
             tableDisplay = document.createElement('div');
             tableDisplay.className = 'table-value-display';
             
-            // Insert after the table subfields
             const tableSubfields = fieldRow.querySelector('.table-subfields');
             if (tableSubfields) {
                 tableSubfields.parentNode.insertBefore(tableDisplay, tableSubfields.nextSibling);
             }
         }
         
-        // Populate table data
         if (!Array.isArray(tableData) || tableData.length === 0) {
             tableDisplay.innerHTML = '<div class="no-table-data">No table data extracted</div>';
         } else {
@@ -1740,20 +1569,17 @@ class ExtractorManager {
             return '<div class="no-table-data">No data available</div>';
         }
         
-        // Get headers from the first row
         const headers = Object.keys(tableData[0]);
         
         let html = '<div class="extracted-table-wrapper">';
         html += '<table class="extracted-table">';
         
-        // Create header
         html += '<thead><tr>';
         headers.forEach(header => {
             html += `<th>${this.formatHeaderName(header)}</th>`;
         });
         html += '</tr></thead>';
         
-        // Create body
         html += '<tbody>';
         tableData.forEach(row => {
             html += '<tr>';
@@ -1770,7 +1596,6 @@ class ExtractorManager {
     }
 
     formatHeaderName(header) {
-        // Convert camelCase or snake_case to readable format
         return header
             .replace(/_/g, ' ')
             .replace(/([a-z])([A-Z])/g, '$1 $2')
@@ -1780,7 +1605,6 @@ class ExtractorManager {
     }
 
     showExtractionSuccess() {
-        // Show a success toast/notification
         const notification = document.createElement('div');
         notification.className = 'extraction-success-notification';
         notification.innerHTML = `
@@ -1794,7 +1618,6 @@ class ExtractorManager {
         
         document.body.appendChild(notification);
         
-        // Auto remove after 3 seconds
         setTimeout(() => {
             if (notification.parentNode) {
                 notification.parentNode.removeChild(notification);
@@ -1820,20 +1643,15 @@ class ExtractorManager {
                 </div>
             </div>
         `;
-        // Add download functionality
         const downloadBtn = panel.querySelector('.download-btn');
         downloadBtn.addEventListener('click', () => this.downloadResults(results));
-        // Add Back button functionality
         const backBtn = panel.querySelector('.results-back-btn');
         backBtn.addEventListener('click', () => this.handleResultsBack());
-        // Next button reserved for export
         return panel;
     }
     handleResultsBack() {
-        // Remove results panel and show schema panel for editing
         const resultsPanel = document.querySelector('.extractor-results-panel');
         if (resultsPanel) resultsPanel.remove();
-        // Optionally scroll to schema panel
         const schemaPanel = document.querySelector('.extractor-schema-panel');
         if (schemaPanel) schemaPanel.scrollIntoView({ behavior: 'smooth' });
     }
@@ -1858,7 +1676,6 @@ class ExtractorManager {
     }
 
     formatResultValue(value) {
-        // Table/line item: render as table if array of objects
         if (Array.isArray(value) && value.length > 0 && typeof value[0] === 'object') {
             const headers = Object.keys(value[0]);
             let table = '<table class="results-table"><thead><tr>';
@@ -1876,15 +1693,12 @@ class ExtractorManager {
             table += '</tbody></table>';
             return table;
         }
-        // Simple value or array
         if (Array.isArray(value)) {
             return value.map(v => `<span>${v}</span>`).join(', ');
         }
-        // Null/undefined fallback
         if (value === null || value === undefined) {
             return '<span style="color:#888">(no value)</span>';
         }
-        // String/number
         return `<span>${value}</span>`;
     }
 
@@ -1911,7 +1725,6 @@ class ExtractorManager {
     }
 
     setupTableFieldEvents() {
-        // Field type change handler
         document.querySelectorAll('.field-type-select').forEach(select => {
             if (!select.hasAttribute('data-listener-attached')) {
                 select.addEventListener('change', (e) => this.handleFieldTypeChange(e));
@@ -1919,7 +1732,6 @@ class ExtractorManager {
             }
         });
 
-        // Add column button handler
         document.querySelectorAll('.add-column-btn').forEach(btn => {
             if (!btn.hasAttribute('data-listener-attached')) {
                 btn.addEventListener('click', (e) => this.handleAddColumn(e));
@@ -1927,7 +1739,6 @@ class ExtractorManager {
             }
         });
 
-        // Add subfield button handler
         document.querySelectorAll('.add-subfield-btn').forEach(btn => {
             if (!btn.hasAttribute('data-listener-attached')) {
                 btn.addEventListener('click', (e) => this.handleAddSubfield(e));
@@ -1939,25 +1750,21 @@ class ExtractorManager {
     }
 
     setupTableFieldEventsForElement(element) {
-        // Field type change handler for specific element
         const typeSelect = element.querySelector('.field-type-select');
         if (typeSelect) {
             typeSelect.addEventListener('change', (e) => this.handleFieldTypeChange(e));
         }
 
-        // Add column button handler for specific element
         const addColumnBtn = element.querySelector('.add-column-btn');
         if (addColumnBtn) {
             addColumnBtn.addEventListener('click', (e) => this.handleAddColumn(e));
         }
 
-        // Add subfield button handler for specific element
         const addSubfieldBtn = element.querySelector('.add-subfield-btn');
         if (addSubfieldBtn) {
             addSubfieldBtn.addEventListener('click', (e) => this.handleAddSubfield(e));
         }
 
-        // Setup remove column events for this element
         element.querySelectorAll('.remove-column-btn').forEach(btn => {
             btn.addEventListener('click', (e) => this.handleRemoveColumn(e));
         });
@@ -1971,16 +1778,12 @@ class ExtractorManager {
         const fieldTypeSpan = fieldRow.querySelector('.field-type-badge');
         const tableSubfields = fieldRow.querySelector('.table-subfields');
 
-        // Only update the display if we're not currently in edit mode
-        // We can check this by seeing if the field is expanded
         const isEditing = fieldRow.classList.contains('expanded');
         
         if (!isEditing && fieldTypeSpan) {
-            // Update the field type display only when not editing
             this.updateFieldTypeDisplay(fieldTypeSpan, select.value);
         }
 
-        // Show/hide table configuration and subfields based on selection
         if (select.value === 'table') {
             this.showTableConfiguration(tableConfig, tableSubfields, fieldRow);
         } else {
@@ -2038,7 +1841,6 @@ class ExtractorManager {
             tableSubfields.remove();
         }
 
-        // Clear table configuration to prevent old columns from persisting
         const tableColumns = fieldRow.querySelector('.table-columns');
         if (tableColumns) {
             tableColumns.innerHTML = '';
@@ -2074,15 +1876,11 @@ class ExtractorManager {
         const fieldEditor = e.target.closest('.field-editor');
         const tableColumns = fieldEditor.querySelector('.table-columns');
         
-        // Only create new column configuration row in edit mode
-        // The display element will be created when saving
         const newColumnHtml = this.createColumnConfigHtml();
         tableColumns.insertAdjacentHTML('beforeend', newColumnHtml);
         
-        // Add event listeners to the newly created configuration row only
         const newColumnRow = tableColumns.querySelector('.table-column-row:last-child');
         if (newColumnRow) {
-            // Add event listener to the remove button
             const removeBtn = newColumnRow.querySelector('.remove-column-btn');
             if (removeBtn) {
                 removeBtn.addEventListener('click', (e) => this.handleRemoveColumnConfig(e));
@@ -2098,16 +1896,13 @@ class ExtractorManager {
         const fieldRow = e.target.closest('.extractor-field-row');
         const tableColumns = fieldRow.querySelector('.table-columns');
 
-        // Create new display element
         const newSubfieldHtml = this.createSubfieldHtml();
         e.target.insertAdjacentHTML('beforebegin', newSubfieldHtml);
 
-        // Also add configuration row if table-columns exists
         if (tableColumns) {
             const newColumnHtml = this.createColumnConfigHtml();
             tableColumns.insertAdjacentHTML('beforeend', newColumnHtml);
             
-            // Add event listeners to the newly created column row
             const newColumnRow = tableColumns.querySelector('.table-column-row:last-child');
             if (newColumnRow) {
                 const removeBtn = newColumnRow.querySelector('.remove-column-btn');
@@ -2117,7 +1912,6 @@ class ExtractorManager {
             }
         }
 
-        // Add event listener to the new subfield delete button
         const newSubfieldWrapper = subfieldsContainer.querySelector('.subfield-wrapper:last-of-type');
         if (newSubfieldWrapper) {
             const deleteBtn = newSubfieldWrapper.querySelector('.delete-subfield-btn');
@@ -2128,7 +1922,6 @@ class ExtractorManager {
 
         this.applyThemeStyles();
 
-        // Trigger immediate sync
         setTimeout(() => {
             const newNameInput = tableColumns?.querySelector('.table-column-row:last-child .column-name-input');
             if (newNameInput) {
@@ -2214,12 +2007,10 @@ class ExtractorManager {
             typeSpan.textContent = type;
             typeSpan.className = `subfield-type ${type}`;
             
-            // Update colors based on current theme
             const isDark = document.body.classList.contains('dark');
             const colors = this.getTypeColors(type, isDark);
             if (colors) {
                 typeSpan.style.setProperty('color', colors.color, );
-               //  typeSpan.style.background = colors.background;
             }
         }
     }
@@ -2246,10 +2037,8 @@ class ExtractorManager {
         const fieldRow = e.target.closest('.extractor-field-row');
         const columnIndex = Array.from(columnRow.parentNode.children).indexOf(columnRow);
 
-        // Remove from configuration
         columnRow.remove();
 
-        // Remove corresponding item from display section
         const subfieldsContainer = fieldRow.querySelector('.subfields-container');
         if (subfieldsContainer) {
             const subfieldWrappers = subfieldsContainer.querySelectorAll('.subfield-wrapper');
@@ -2261,8 +2050,6 @@ class ExtractorManager {
 
     handleRemoveColumnConfig(e) {
         e.preventDefault();
-        // Only remove the configuration row, not the display element
-        // This is used when removing columns that haven't been saved yet
         const columnRow = e.target.closest('.table-column-row');
         columnRow.remove();
     }
@@ -2275,10 +2062,8 @@ class ExtractorManager {
             const subfieldsContainer = fieldRow.querySelector('.subfields-container');
             const subfieldIndex = Array.from(subfieldsContainer.querySelectorAll('.subfield-wrapper')).indexOf(subfieldWrapper);
 
-            // Remove from display
             subfieldWrapper.remove();
 
-            // Remove corresponding configuration row
             const tableColumns = fieldRow.querySelector('.table-columns');
             if (tableColumns) {
                 const columnRows = tableColumns.querySelectorAll('.table-column-row');
@@ -2290,10 +2075,8 @@ class ExtractorManager {
     }
 
     reinitializeEventListeners() {
-        // Clear any existing duplicate listeners by cloning and replacing elements
         this.clearDuplicateListeners();
         
-        // Re-setup all core event listeners
         this.setupCoreEventListeners();
         this.setupFieldActionEvents();
         this.setupRemoveColumnEvents();
@@ -2302,7 +2085,6 @@ class ExtractorManager {
     }
 
     clearDuplicateListeners() {
-        // Clone and replace elements to remove all existing event listeners
         const elementsToClone = [
             '.extractor-add-field-btn',
             '.extractor-bottom-bar .dashboard-btn-primary',
@@ -2321,14 +2103,12 @@ class ExtractorManager {
     }
 
     setupCoreEventListeners() {
-        // Add field button
         const addFieldBtn = document.querySelector('.extractor-add-field-btn');
         if (addFieldBtn && !addFieldBtn.hasAttribute('data-listener-attached')) {
             addFieldBtn.addEventListener('click', (e) => this.handleAddField(e));
             addFieldBtn.setAttribute('data-listener-attached', 'true');
         }
 
-        // Extract button
         const extractBtn = document.querySelector('.extractor-bottom-bar .dashboard-btn-primary');
         if (extractBtn && !extractBtn.hasAttribute('data-listener-attached')) {
             extractBtn.addEventListener('click', (e) => this.handleExtract(e));
@@ -2337,17 +2117,13 @@ class ExtractorManager {
     }
 
     setupFieldActionEvents() {
-        // Field action buttons (edit, save, cancel, remove) 
         const buttons = document.querySelectorAll('.action-btn, .save-btn, .cancel-btn');
         console.log(`Setting up field action events for ${buttons.length} buttons`);
         
         buttons.forEach((btn, index) => {
-            // For restored content, always attach fresh listeners
-            // Use a more direct approach: remove existing listeners by cloning only for restored content
             if (!btn.hasAttribute('data-listener-attached')) {
                 console.log(`Attaching listener to button ${index} (${btn.dataset.action})`);
                 
-                // Create a wrapper function to ensure 'this' context is preserved
                 const clickHandler = (e) => {
                     console.log(`Button clicked: ${btn.dataset.action} for field ${btn.dataset.idx}`);
                     this.handleFieldAction(e);
@@ -2364,39 +2140,31 @@ class ExtractorManager {
     applyThemeStyles() {
         const isDark = document.body.classList.contains('dark');
 
-        // Update upload panel card
         const uploadCard = document.querySelector('.upload-card');
         if (uploadCard) {
             uploadCard.style.background = isDark ? '#2C394B' : '#fff';
             uploadCard.style.color = isDark ? '#fff' : '#222';
         }
 
-        // Update main field type spans
         document.querySelectorAll('span[style*="border-radius:12px"]').forEach(span => {
             const text = span.textContent.toLowerCase();
             const colors = this.getTypeColors(text, isDark);
             if (colors) {
-               //  span.style.background = colors.background + ' !important';
                 span.style.color = colors.color + ' !important';
             }
         });
 
-        // Update subfield type spans
         document.querySelectorAll('.subfield-type').forEach(span => {
             const text = span.textContent.toLowerCase();
             const colors = this.getTypeColors(text, isDark);
             if (colors) {
-               //  span.style.background = colors.background + ' !important';
-               //  span.style.setProperty('color', colors.color, 'important');
             }
         });
     }
 
     setupThemeObserver() {
-        // Respect user's stored theme preference first
         const currentTheme = localStorage.getItem("theme");
         
-        // If user has a stored preference, respect it
         if (currentTheme === "dark") {
             if (!document.body.classList.contains('dark')) {
                 document.body.classList.add('dark');
@@ -2408,7 +2176,6 @@ class ExtractorManager {
                 this.applyThemeStyles();
             }
         }
-        // Only use system preference if no user preference is stored
         else if (!currentTheme && window.matchMedia?.('(prefers-color-scheme: dark)').matches) {
             if (!document.body.classList.contains('dark')) {
                 document.body.classList.add('dark');
@@ -2416,7 +2183,6 @@ class ExtractorManager {
             }
         }
 
-        // Listen for localStorage changes (theme toggle from other pages)
         window.addEventListener('storage', (e) => {
             if (e.key === 'theme') {
                 if (e.newValue === 'dark') {
@@ -2428,7 +2194,6 @@ class ExtractorManager {
             }
         });
 
-        // Observe body class changes
         const observer = new MutationObserver(() => {
             this.applyThemeStyles();
         });
@@ -2436,12 +2201,12 @@ class ExtractorManager {
     }
 }
 
-// Initialize when DOM is ready
+
 document.addEventListener('DOMContentLoaded', () => {
     window.extractorManager = new ExtractorManager();
 });
 
-// Global function for inline event handlers (backward compatibility)
+
 window.updateTableDisplay = function(element) {
     if (window.extractorManager) {
         window.extractorManager.updateTableDisplay(element);

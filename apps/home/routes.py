@@ -46,6 +46,46 @@ def extractor_list():
     return render_template('home/extractor-list.html', segment='extractor-list', workflows=extractors)
 
 
+@blueprint.route('/api/extract', methods=['POST'])
+def api_extract():
+    """
+    API endpoint to handle document extraction and save results
+    """
+    try:
+        # Get uploaded file
+        if 'file' not in request.files:
+            return jsonify({'success': False, 'error': 'No file uploaded'})
+        
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'success': False, 'error': 'No file selected'})
+        
+        # Get schema configuration and extractor_id
+        schema_json = request.form.get('schema', '{}')
+        schema = json.loads(schema_json)
+        extractor_id = request.form.get('extractor_id')
+        
+        # Read file content
+        file_content = file.read()
+        
+        # Initialize the extraction service
+        from apps.services.extraction_service import DocumentExtractionService
+        extraction_service = DocumentExtractionService()
+        
+        # Extract data using OpenAI
+        results = extraction_service.extract_from_file(file_content, schema)
+        
+        return jsonify({
+            'success': True,
+            'results': results,
+            'filename': file.filename,
+            'extractor_id': extractor_id
+        })
+        
+    except Exception as e:
+        logger.exception("Extraction error: %s", e)
+        return jsonify({'success': False, 'error': str(e)})
+
 
 
 @blueprint.route('/api/extract/<extractor_uid>', methods=['POST'])

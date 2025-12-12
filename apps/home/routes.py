@@ -1,3 +1,4 @@
+
 # -*- encoding: utf-8 -*-
 """
 Copyright (c) 2019 - present AppSeed.us
@@ -86,7 +87,70 @@ def api_extract():
         logger.exception("Extraction error: %s", e)
         return jsonify({'success': False, 'error': str(e)})
 
+@blueprint.route('/api/extractors/<int:extractor_id>', methods=['DELETE'])
+@login_required
+def api_delete_extractor(extractor_id):
+    """
+    Delete an extractor (only the owner can delete)
+    """
+    try:
+        from apps.models.extractor import Extractor
+        from apps import db
 
+        # Find the extractor
+        extractor = Extractor.query.filter_by(id=extractor_id, user_id=current_user.id).first()
+
+        if not extractor:
+            return jsonify({'success': False, 'error': 'Extractor not found or you do not have permission to delete it'}), 404
+
+        db.session.delete(extractor)
+        db.session.commit()
+
+        return jsonify({'success': True, 'message': 'Extractor deleted successfully'})
+    except Exception as e:
+        logger.exception("Delete extractor error: %s", e)
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@blueprint.route('/api/chat', methods=['POST'])
+def api_chat():
+    """
+    Chat endpoint for the embedded chat widget
+    Handles user messages and returns bot responses
+    """
+    try:
+        data = request.get_json()
+        
+        if not data or 'message' not in data:
+            return jsonify({'success': False, 'error': 'message is required'}), 400
+        
+        user_message = data.get('message', '').strip()
+        
+        if not user_message:
+            return jsonify({'success': False, 'error': 'message cannot be empty'}), 400
+        
+        client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+        
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant for document extraction and processing."},
+                {"role": "user", "content": user_message}
+            ],
+            max_tokens=500,
+            temperature=0.7
+        )
+        
+        bot_reply = response.choices[0].message.content
+        
+        return jsonify({
+            'success': True,
+            'reply': bot_reply
+        }), 200
+    
+    except Exception as e:
+        logger.exception("Chat error: %s", e)
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @blueprint.route('/api/extract/<extractor_uid>', methods=['POST'])
 def api_extract_by_uid(extractor_uid):

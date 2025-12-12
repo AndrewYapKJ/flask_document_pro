@@ -85,7 +85,7 @@ class DocumentExtractionService:
             num_pages = len(images)
             logger.info("Converted %d page(s) from PDF", num_pages)
             
-            # If single page, just return it
+         
             if num_pages == 1:
                 img_buffer = io.BytesIO()
                 images[0].save(img_buffer, format='PNG')
@@ -93,29 +93,28 @@ class DocumentExtractionService:
                 logger.info("Single page PDF converted to PNG (%d bytes)", len(img_bytes))
                 return img_bytes, "image/png"
             
-            # Multiple pages: merge them vertically
+            
             logger.info("Merging %d pages vertically...", num_pages)
             
-            # Get dimensions
+     
             widths = [img.width for img in images]
             heights = [img.height for img in images]
-            
-            # Use max width and sum of heights
+     
             max_width = max(widths)
             total_height = sum(heights)
             
-            # Create new image with combined dimensions
+          
             merged_image = Image.new('RGB', (max_width, total_height), 'white')
             
-            # Paste each page vertically
+          
             y_offset = 0
             for img in images:
-                # Center image if it's narrower than max_width
+              
                 x_offset = (max_width - img.width) // 2
                 merged_image.paste(img, (x_offset, y_offset))
                 y_offset += img.height
             
-            # Convert merged image to bytes
+         
             img_buffer = io.BytesIO()
             merged_image.save(img_buffer, format='PNG')
             img_bytes = img_buffer.getvalue()
@@ -138,11 +137,11 @@ class DocumentExtractionService:
         Returns:
             File type string
         """
-        # Check for PDF signature
+     
         if file_bytes.startswith(b'%PDF'):
             return 'pdf'
         
-        # Check for common image signatures
+        
         if file_bytes.startswith(b'\xff\xd8\xff'):
             return 'jpeg'
         elif file_bytes.startswith(b'\x89PNG'):
@@ -152,7 +151,7 @@ class DocumentExtractionService:
         elif file_bytes.startswith(b'RIFF') and b'WEBP' in file_bytes[:12]:
             return 'webp'
         
-        # Default to unknown
+       
         return 'unknown'
     
     def _prepare_image_for_api(self, file_bytes: bytes) -> tuple[str, str]:
@@ -164,19 +163,19 @@ class DocumentExtractionService:
             if not PDF_CONVERSION_AVAILABLE:
                 raise Exception("PDF files are not supported - PDF conversion libraries not available")
             
-            # Convert PDF to image
+          
             image_bytes, mime_type = self._convert_pdf_to_image(file_bytes)
             file_b64 = base64.b64encode(image_bytes).decode("utf-8")
             return file_b64, mime_type
             
         elif file_type in ['jpeg', 'png', 'gif', 'webp']:
-            # Direct image file
+          
             mime_type = f"image/{file_type}"
             file_b64 = base64.b64encode(file_bytes).decode("utf-8")
             return file_b64, mime_type
             
         else:
-            # Unknown file type - try as image anyway
+         
             logger.info("Unknown file type, attempting as JPEG...")
             mime_type = "image/jpeg"
             file_b64 = base64.b64encode(file_bytes).decode("utf-8")

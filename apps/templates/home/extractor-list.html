@@ -7,6 +7,7 @@
 <link rel="stylesheet" href="/static/assets/css/dark.css">
 <link rel="stylesheet" href="/static/assets/css/extractor.css">
 <link rel="stylesheet" href="/static/assets/css/extractor-dark.css">
+
 <style>
     .action-buttons {
         display: flex;
@@ -90,6 +91,9 @@
                                                                 <button class="btn btn-sm btn-secondary cancel-btn-{{ wf.id }}" onclick="cancelEdit({{ wf.id }})" style="display: none;" title="Cancel">
                                                                     <i class="feather icon-x"></i>
                                                                 </button>
+                                                                <button class="btn btn-sm btn-danger delete-btn-{{ wf.id }}" onclick="deleteWorkflow({{ wf.id }})" title="Delete">
+                                                                    <i class="feather icon-trash-2"></i>
+                                                                </button>
                                                             </div>
                                                         </td>
                                                     </tr>
@@ -117,6 +121,32 @@
 {% endblock %}
 {% block javascripts %}
 <script>
+function deleteWorkflow(workflowId) {
+    if (!confirm('Are you sure you want to delete this workflow? This action cannot be undone.')) {
+        return;
+    }
+    fetch('/api/extractors/' + workflowId, {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Remove row from table
+            const row = document.querySelector('.delete-btn-' + workflowId).closest('tr');
+            if (row) row.remove();
+            alert('Workflow deleted successfully!');
+        } else {
+            alert('Error deleting workflow: ' + (data.error || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error deleting workflow: ' + error);
+    });
+}
 function copyToClipboard(text) {
     // Try modern clipboard API first
     if (navigator.clipboard && navigator.clipboard.writeText) {

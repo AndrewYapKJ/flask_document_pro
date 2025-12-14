@@ -1,24 +1,32 @@
-FROM python:3.11
+FROM python:3.11-slim
 
-# set environment variables
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
-ENV FLASK_APP run.py
-ENV DEBUG True
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    FLASK_APP=run.py \
+    DEBUG=True
 
+# Install Microsoft ODBC Driver 18 + dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        curl \
+        gnupg && \
+    curl -sSL -O https://packages.microsoft.com/config/debian/12/packages-microsoft-prod.deb && \
+    dpkg -i packages-microsoft-prod.deb && \
+    rm packages-microsoft-prod.deb && \
+    apt-get update && \
+    ACCEPT_EULA=Y apt-get install -y --no-install-recommends \
+        msodbcsql18 \
+        unixodbc-dev && \
+    rm -rf /var/lib/apt/lists/*
+
+# Copy and install Python dependencies
 COPY requirements.txt .
+RUN pip install --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
 
-# install python dependencies
-RUN pip install --upgrade pip
-RUN pip install --no-cache-dir -r requirements.txt
-
+# Copy env and app code
 COPY env.sample .env
-
 COPY . .
 
-RUN flask db init
-RUN flask db migrate
-RUN flask db upgrade
-
-# gunicorn
+# Run with Gunicorn (migrations at runtime – see previous advice)
 CMD ["gunicorn", "--config", "gunicorn-cfg.py", "run:app"]

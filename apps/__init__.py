@@ -8,7 +8,7 @@ import os
 from flask import Flask
 from flask_login import LoginManager
 from flask_sqlalchemy import SQLAlchemy
-from flask_cors import CORS
+
 from importlib import import_module
 
 
@@ -41,32 +41,32 @@ def create_app(config):
     app = Flask(__name__)
     app.config.from_object(config)
     
-    CORS(app, 
-        origins="*",
-        methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-        allow_headers=["Content-Type", "Authorization", "X-Requested-With"],
-        supports_credentials=True,
-        max_age=3600
-    )
+    # CORS(app, 
+    #     origins="*",
+    #     methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    #     allow_headers=["Content-Type", "Authorization", "X-Requested-With"],
+    #     supports_credentials=True,
+    #     max_age=3600
+    # )
     
-    @app.before_request
-    def handle_preflight():
-        from flask import request
-        if request.method == "OPTIONS":
-            response = app.make_default_options_response()
-            response.headers.add("Access-Control-Allow-Origin", "*")
-            response.headers.add("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH")
-            response.headers.add("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With")
-            response.headers.add("Access-Control-Max-Age", "3600")
-            return response
+    # @app.before_request
+    # def handle_preflight():
+    #     from flask import request
+    #     if request.method == "OPTIONS":
+    #         response = app.make_default_options_response()
+    #         response.headers.add("Access-Control-Allow-Origin", "*")
+    #         response.headers.add("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH")
+    #         response.headers.add("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With")
+    #         response.headers.add("Access-Control-Max-Age", "3600")
+    #         return response
     
-    @app.after_request
-    def add_cors_headers(response):
-        response.headers["Access-Control-Allow-Origin"] = "*"
-        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
-        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With"
-        response.headers["Access-Control-Max-Age"] = "3600"
-        return response
+    # @app.after_request
+    # def add_cors_headers(response):
+    #     response.headers["Access-Control-Allow-Origin"] = "*"
+    #     response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+    #     response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With"
+    #     response.headers["Access-Control-Max-Age"] = "3600"
+    #     return response
     
     register_extensions(app)
     # Import models so they are registered with SQLAlchemy before creating tables
